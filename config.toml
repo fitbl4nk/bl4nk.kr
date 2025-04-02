@@ -94,7 +94,7 @@ base_canonical_url = "https://bl4nk.kr"
 # Remote repository for your Zola site.
 # Used for `show_remote_changes` and `show_remote_source` (see below).
 # Supports GitHub, GitLab, Gitea, and Codeberg.
-remote_repository_url = "https://github.com/fitbl4nk/fitbl4nk.github.io"
+remote_repository_url = "https://github.com/fitbl4nk/bl4nk.kr"
 # Set this to "auto" to try and auto-detect the platform based on the repository URL.
 # Accepted values are "github", "gitlab", "gitea", and "codeberg".
 remote_repository_git_platform = "auto"  # Defaults to "auto".
