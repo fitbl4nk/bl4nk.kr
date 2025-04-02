@@ -147,7 +147,7 @@ Full RELRO가 적용되어있기 때문에 GOT영역은 `write`가 불가능하�
 
 `stdout`, `stdin`을 바꿔서 RIP control을 해야하니 자료를 찾아보다가 FSOP 기법을 발견했다.
 
-FSOP 기법은 [이 글](https://fitbl4nk.github.io/posts/FSOP-glibc-2.35에서-_IO_flush_all_lockp을-이용해-FSOP-하기/)에 정리한 내용을 사용했다.
+FSOP 기법은 [이 글](../exploiting-fsop-in-glibc-2-35/)에 정리한 내용을 사용했다.
 
 문제에서는 `AddClipboard()` 기능을 이용하여 메모리를 마음대로 할당받을 수 있고, 처음에 heap 주소를 주었으니 offset을 계산하여 다음과 같이 payload를 작성했다.
 ``` python
