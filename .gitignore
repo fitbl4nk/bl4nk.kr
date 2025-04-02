@@ -1,0 +1,7 @@
+public/
+
+# IDE conddfigurations
+.idea
+.vscode
+!.vscode/settings.json
+!.vscode/extensions.json
