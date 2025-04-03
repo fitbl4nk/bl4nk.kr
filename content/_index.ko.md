@@ -3,7 +3,7 @@ title = "Latest posts"
 
 [extra]
 header = { title = "fill in the (bl4nk)" }
-section_path = "blog/_index.md"
+section_path = "blog/_index.ko.md"
 max_posts = 5
 +++
 
