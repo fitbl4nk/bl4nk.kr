@@ -6,12 +6,6 @@ insert_anchor_links = "left"
 
 Hi! I'm **bl4nk**, a cybersecurity specialist in the Republic of Korea Army. I am serving as a captain.
 
-## Language
- - **Korean**(C2 : Mastery[^1])
- - **English**(C1 : Advanced)
- - **Japanese**(B1 : Threshold)
- [^1]: Based on CEFR(Common European Framework of Reference for languages).
-
 ## Education
 - 2020 ~ Present : **Korea University**
   - Ph.D. candiate in Department of Information Security
@@ -19,7 +13,7 @@ Hi! I'm **bl4nk**, a cybersecurity specialist in the Republic of Korea Army. I a
   - Vulnerability Analysis track
 - 2015 ~ 2019 : **Korea University**
   - Bachelor's degree in Department of Cyber Defense
-- 2011 ~ 2013 : **Goyang Foreign Language High School**
+- 2011 ~ 2014 : **Goyang Foreign Language High School**
   - Majored in English
 
 ## Work Experience
@@ -40,3 +34,9 @@ Hi! I'm **bl4nk**, a cybersecurity specialist in the Republic of Korea Army. I a
     - 2018 Codegate Conference
     - 2018 CodeEngn Conference
     - and etc.
+
+## Language
+ - **Korean**(C2 : Mastery[^1])
+ - **English**(C1 : Advanced)
+ - **Japanese**(B1 : Threshold)
+ [^1]: Based on CEFR(Common European Framework of Reference for languages).
