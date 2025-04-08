@@ -8,7 +8,7 @@ Hi! I'm **bl4nk**, a cybersecurity specialist in the Republic of Korea Army. I a
 
 ## Education
 - 2020 ~ Present : **Korea University**
-  - Ph.D. candiate in Department of Information Security
+  - Ph.D. candidate in Department of Information Security
 - 2017 ~ 2018 : **Best of the Best**(Next-Generation Security Leader Training Program)
   - Vulnerability Analysis track
 - 2015 ~ 2019 : **Korea University**
@@ -20,20 +20,20 @@ Hi! I'm **bl4nk**, a cybersecurity specialist in the Republic of Korea Army. I a
 - 2022 ~ Present : **Redacted** for security reasons
 - 2019 ~ 2022 : **Republic of Korea Cyber Operations Command**
   - Vulnerability research for pen-testing
-  - Simulated real-world cyberattacks to assess the security level
+  - Conducted simulations of real-world cyberattacks to evaluate security levels
 
 ## Award
 - 2024 **White Hat Contest** as team "Hasan"
-  - 2nd place at Military division
+  - 2nd place in the Military division
 
 ## Project
-- 2017 ~ 2018 : **Smart Home Hacking in Real World** with team "Emohtrams"
-  - Found multiple vulnerbilities in system, web, embedded and network
-  - Presented sessions at
+- 2017 ~ 2018 : **Smart Home Hacking in the Real World** with team "Emohtrams"
+  - Found multiple vulnerabilities in system, web, embedded, and network
+  - Delivered presentations at
     - 2019 HITB Security Conference
     - 2018 Codegate Conference
     - 2018 CodeEngn Conference
-    - and etc.
+    - etc
 
 ## Language
  - **Korean**(C2 : Mastery[^1])
