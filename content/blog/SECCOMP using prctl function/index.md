@@ -350,10 +350,10 @@ When ran in `bash`, the output is colored and easy to check.
 ![image](https://github.com/user-attachments/assets/31a4405c-73b6-4427-8868-2352f33690e3)
 
 ## 0x04. Expected Vulnerability
-Of course, it depends on how it was coded, but I thought about vulnerabilities that could occur.
+Of course, it depends on how it was coded, but I thought about vulnerabilities that could occur easily.
 
 ### x32 Syscall
-In the previous example of `disasm` command in seccomp-tools, there was a rule like this.
+In the previous example of `disasm` command in seccomp-tools, there were rules like these.
 
 ``` txt
 0000: 0x20 0x00 0x00 0x00000004  A = arch
@@ -362,10 +362,10 @@ In the previous example of `disasm` command in seccomp-tools, there was a rule l
 0003: 0x35 0x06 0x00 0x40000000  if (A >= 0x40000000) goto 0010
 ```
 
-The `0001` line is the logic to check if the architecture is `X86_64`, and why does it check if the `sys_number` of the `0003` line is greater than `0x40000000`?
+The `0001` line is the logic to check if the architecture is `X86_64`, then why does it check if the `sys_number` of the `0003` line is greater than `0x40000000`?
 
 The reason is the compatibility of the `X86_64` architecture.
-It was developed so that the instructions used in the previous 32-bit can be used in the 64-bit architecture as is, and this is called the x32 ABI.
+It was developed for the instructions used in the previous 32-bit to be also used in the 64-bit architecture, and this whole concept is called the x32 ABI.
 Therefore, 32-bit syscalls can be called in the 64-bit architecture, and the method for doing so is to add `0x40000000` to the 64-bit syscall number in Linux.
 
 Let's look at the code of the `do_syscall_x32` function that is called when a 32-bit syscall is actually called in the Linux kernel.
@@ -388,13 +388,12 @@ static __always_inline bool do_syscall_x32(struct pt_regs *regs, int nr)
 }
 ```
 
-In the first line of the function, `xnr = nr - __X32_SYSCALL_BIT` is assigned, and the `__X32_SYSCALL_BIT` value is said to be the predefined `0x40000000`.
+In the first line of the function, `xnr = nr - __X32_SYSCALL_BIT` is executed, and the `__X32_SYSCALL_BIT` value is predefined value `0x40000000`.
 
-Therefore, if there is no logic to verify that the syscall number is less than `0x40000000` in the BPF rule of a 64-bit binary,
-even if a specific syscall is blocked, you can call the syscall of the 32-bit architecture by adding `0x40000000` to the syscall number using the x32 ABI.
+Therefore, if there is no logic to verify that the syscall number is less than `0x40000000` in the BPF rule of a 64-bit binary, even if a specific syscall is blocked, you can still call the syscall of the 32-bit architecture by adding `0x40000000` to the syscall number using the x32 ABI.
 
 ### Filter Overwrite
-The simplest idea that comes to mind is that it is a vulnerability that can occur when the BPF filter rule part in memory can be overwritten with a desired value before SECCOMP is set. There are ways to do this, such as changing the rule to allow calling the desired syscall, or painting the rule with `return ALLOW`.
+The simplest idea that comes to mind is that it is a vulnerability that can occur when the BPF filter rule part in memory can be overwritten with a desired value before SECCOMP is set. There are ways to do this, such as changing the rule to allow calling the desired syscall, or overwriting the rule with `return ALLOW`.
 
 There is a related challenge on [dreamhack.io](https://dreamhack.io), which I recommend trying.
 
@@ -418,9 +417,9 @@ $ seccomp-tools asm wrong.txt -f raw | seccomp-tools disasm -
 ```
 
 Here is an example of a wrong BPF rule. If you look closely, you will see that it says goto 0005 on line 0001.
-When composing `wrong.txt`, I thoughtlessly told `goto` to go to line 3 where `return KILL` is located, but I found out that I had to input the value using the concept of a relative address.
+When composing `wrong.txt`, I thoughtlessly set line of `goto` as 3 where `return KILL` is located, but I found out that I had to calculate the line as a relative address.
 
-For example, if `goto 0` is on the current line 0001, it is interpreted as going to the next line 0002, and if `goto 1` is interpreted as going to the next X 2 lines 0003, so `goto 3` becomes a command to go to line 0005.
+For example, if `goto 0` is on the current line 0001, it is interpreted as going to the next line, 0002; and if it's `goto 1`, it is interpreted as going to the next next line, 0003. So `goto 3` becomes a command to go to line 0005.
 Since line 0005 does not exist in `wrong.txt`, an error occurs when passing it as an option to `prctl`.
 
 ``` bash
@@ -433,9 +432,9 @@ hihi
 When the wrong rule is applied, a SECCOMP error occurs like this.
 As a result, the rule that was supposed to block the `write` syscall was not applied, so the input string was output to `STDOUT`.
 
-Therefore, even if the entire filter cannot be overwritten like Filter Overwrite, if the rule itself can be made nonsensical with a few bytes, an error will occur, but the process will be maintained, so SECCOMP bypass is possible.
+Therefore, even if the entire filter cannot be overwritten like [Filter Overwrite](#filter-overwrite), if the rule itself can be made nonsensical with a few bytes, an error will occur, but the process will be maintained, so SECCOMP bypass is possible.
 
-## 0x05. Reference
+## 0x05. References
  - [https://man7.org/linux/man-pages/man2/prctl.2.html](https://man7.org/linux/man-pages/man2/prctl.2.html)
  - [https://jeongzero.oopy.io/06eebad5-8306-493f-9c6d-e7a04d5aacff](https://jeongzero.oopy.io/06eebad5-8306-493f-9c6d-e7a04d5aacff)
 - [https://velog.io/@woounnan/LINUX-Seccomp](https://velog.io/@woounnan/LINUX-Seccomp)
