@@ -8,7 +8,6 @@ tags = ["ctf", "pwnable", "loop codition", "bof", "rop"]
 +++
 
 ## 0x00. Introduction
-
 ``` bash
 [*] '/home/user/memod'
     Arch:     i386-32-little
@@ -21,7 +20,6 @@ tags = ["ctf", "pwnable", "loop codition", "bof", "rop"]
 ```
 
 ### Goal
-
 ``` c
 int __cdecl main(int argc, const char **argv, const char **envp)
 {
@@ -41,18 +39,15 @@ int __cdecl main(int argc, const char **argv, const char **envp)
 ```
 
 전역변수인 `canary_backup`에 4바이트 랜덤값을 `/dev/urandom`으로부터 읽어오고, 그 값을 지역변수인 `canary`에 저장했다가 끝날 때 비교를 한다.
-
 만약 값이 바뀌었다면 프로세스를 강제종료시키므로, 이를 잘 우회해야 한다.
 
 ## 0x01. Vulnerability
-
 ``` c
   char s[256]; // [esp+10h] [ebp-128h] BYREF
   fgets(s, 512, stdin);
 ```
 
 첫 번째로 눈에 띈 것은 `ebp-0x128`에 위치한 `s`에 512바이트 입력을 받아 BOF 취약점이 발생한다는 것이었다.
-
 다만 앞에서도 언급했듯 `canary`를 잘 우회해야 한다.
 
 ``` c
@@ -72,11 +67,9 @@ int __cdecl main(int argc, const char **argv, const char **envp)
 ```
 
 다음으로 눈에 띈 것이 for문의 조건문이다.
-
 `file` 배열이 32바이트인 반면 조건문이 `i <= 32`로 되어있기 때문에 마지막 loop에서 `file[32]`가 `fd`의 가장 하위 바이트를 가리키게 된다.
 
 ## 0x02. Exploit
-
 위 취약점을 이용해서 `fd`를 overwrite하게 되면 생기는 문제는 다음과 같다.
 
 ``` c
@@ -86,10 +79,9 @@ int __cdecl main(int argc, const char **argv, const char **envp)
 ```
 
 애써 `/dev/urandom`을 `open()`해서 저장한 `fd`가 엉뚱한 값으로 바뀌게 된다.
-
 `fd`를 0으로 덮어서 `stdin`을 만들어 내가 입력을 줄 수도 있고, 엉뚱한 `fd`가 있으면 프로세스를 종료되지 않고, `canary_backup`에 아무런 값이 써지지 않기 때문에 엉뚱한 값으로 덮어도 된다.
 
-따라서 `fd`를 엉뚱한 값으로 덮고 지역 변수인 `canary`에 `0x00000000`을 넣어주면 `mcmcmp()`를 통과할 수 있다.
+따라서 `fd`를 엉뚱한 값으로 덮고 지역 변수인 `canary`에 `0x00000000`을 넣어주면 `memcmp()`를 통과할 수 있다.
 
 ``` bash
 [*] '/home/user/memod'
@@ -103,17 +95,13 @@ int __cdecl main(int argc, const char **argv, const char **envp)
 ```
 
 이제 exploit을 위해서 바이너리를 살펴보니 NX가 꺼져있어서 쉘코드를 통해 쉘을 띄우려고 했다.
-
 **그런데 아무리 찾아봐도 stack leak이 될만한 부분이 없었다...**
-
 고민하는 과정에서 libc에 있는 `environ` 변수를 이용한 stack leak 기법을 찾았는데, 한번도 이렇게 leak을 해본 적이 없어서 이를 활용한 payload를 작성했다.
 
 물론 ROP로도 풀이가 가능해서 `mprotect()`를 이용한 ROP로도 payload를 작성했다.
 
 ## 0x03. Payload
-
 ### environ을 이용한 payload
-
 ``` python
 from pwn import *
 from pwnlib.util.packing import p32, p64, u32, u64
@@ -199,7 +187,6 @@ if __name__=='__main__':
 ```
 
 ### mprotect를 이용한 payload
-
 ``` python
 from pwn import *
 from pwnlib.util.packing import p32, p64, u32, u64
