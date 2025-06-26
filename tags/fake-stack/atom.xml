@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<?xml-stylesheet href="https://bl4nk.kr/feed_style.xsl" type="text/xsl"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xml:lang="en">
+    <tabi:metadata xmlns:tabi="https://github.com/welpo/tabi">
+        <tabi:base_url>https:&#x2F;&#x2F;bl4nk.kr</tabi:base_url>
+        <tabi:separator>
+            •
+        </tabi:separator>
+        <tabi:about_feeds>This is a web feed, also known as an Atom feed. Subscribe by copying the URL from the address bar into your newsreader. Visit About Feeds to learn more and get started. It&#x27;s free.</tabi:about_feeds>
+        <tabi:visit_the_site>Visit website</tabi:visit_the_site>
+        <tabi:recent_posts>Recent posts</tabi:recent_posts>
+        <tabi:last_updated_on>Updated on $DATE</tabi:last_updated_on>
+        <tabi:default_theme></tabi:default_theme>
+        <tabi:post_listing_date>date</tabi:post_listing_date>
+        <tabi:current_section>fake stack</tabi:current_section>
+    </tabi:metadata><link rel="extra-stylesheet" href="https://bl4nk.kr/skins/lavender.css?h=31ee0a710ed660d122f6" /><title>~/bl4nk - fake stack</title>
+        <subtitle>fill in the bl4nk</subtitle>
+    <link href="https://bl4nk.kr/tags/fake-stack/atom.xml" rel="self" type="application/atom+xml"/>
+    <link href="https://bl4nk.kr/tags/fake-stack/" rel="alternate" type="text/html"/>
+    <generator uri="https://www.getzola.org/">Zola</generator>
+    <updated>2024-09-15T00:00:00+00:00</updated>
+    <id>https://bl4nk.kr/tags/fake-stack/atom.xml</id><entry xml:lang="en">
+        <title>CyberSpace CTF 2024 - ez-rop</title>
+        <published>2024-09-15T00:00:00+00:00</published>
+        <updated>2024-09-15T00:00:00+00:00</updated>
+        <author>
+            <name>bl4nk</name>
+        </author>
+        <link rel="alternate" href="https://bl4nk.kr/blog/cyberspace-ctf-2024-ez-rop/" type="text/html"/>
+        <id>https://bl4nk.kr/blog/cyberspace-ctf-2024-ez-rop/</id>
+        
+            <content type="html">&lt;p&gt;Only available in Korean for now ;)&lt;&#x2F;p&gt;
+</content>
+        <summary type="html">CyberSpace CTF 2024 pwnable challenge</summary>
+        </entry>
+</feed>
