@@ -36,7 +36,9 @@ wsl --install -d Ubuntu
 
 ### Visual Studio Code
 #### 테마 설정
-`ctrl + shift + p` -> `Preferences: Color Theme` -> `Browse Additional Color Themes...`
+원하는 테마 설치 후 `ctrl + shift + p` -> `Preferences: Color Theme` -> `Browse Additional Color Themes...`로 선택한다.
+
+Material Icon Theme같은 아이콘 테마는 설치하면 바로 적용된다.
 
 #### 단축키 설정
 `ctrl + shift + p` -> `Preferences: Open Keyboard Shortcuts(JSON)`에 다음 내용을 붙여넣는다.
@@ -60,7 +62,7 @@ wsl --install -d Ubuntu
 ``` json
 [
     {
-        "key": "ctrl+oem_3",
+        "key": "ctrl+`",
         "command": "workbench.action.focusNextGroup"
     }
 ]
@@ -177,11 +179,11 @@ sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin 
 # zsh
 echo "export WIN=\"/mnt/c/Users/bl4nk\"" >> ~/.zshrc
 echo "alias cdd=\"cd \$WIN\"" >> .zshrc
-echo "mkdir -m 700 -p \${SHELL_SESSION_DIR:=\${ZDOTDIR:-\$HOME}/.zsh_sessions}" >> a
-echo "HISTFILE=\$SHELL_SESSION_DIR/\$TERM_SESSION_ID.history" >> a
-echo "source \$ZSH/oh-my-zsh.sh" >> a
-echo "unsetopt inc_append_history share_history" >> a
-echo "unset HISTFILE" >> a
+echo "mkdir -m 700 -p \${SHELL_SESSION_DIR:=\${ZDOTDIR:-\$HOME}/.zsh_sessions}" >> .zshrc
+echo "HISTFILE=\$SHELL_SESSION_DIR/\$TERM_SESSION_ID.history" >> .zshrc
+echo "source \$ZSH/oh-my-zsh.sh" >> .zshrc
+echo "unsetopt inc_append_history share_history" >> .zshrc
+echo "unset HISTFILE" >> .zshrc
 
 # tmux
 echo "setw -g mouse on" > ~/.tmux.conf
