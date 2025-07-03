@@ -38,8 +38,6 @@ wsl --install -d Ubuntu
 #### 테마 설정
 원하는 테마 설치 후 `ctrl + shift + p` -> `Preferences: Color Theme` -> `Browse Additional Color Themes...`로 선택한다.
 
-Material Icon Theme같은 아이콘 테마는 설치하면 바로 적용된다.
-
 #### 단축키 설정
 `ctrl + shift + p` -> `Preferences: Open Keyboard Shortcuts(JSON)`에 다음 내용을 붙여넣는다.
 
@@ -109,6 +107,8 @@ sh -c "$(wget https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/ins
 # zsh plugins
 git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
 git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting
+sed -i 's/^plugins=(git)$/plugins=(git zsh-autosuggestions zsh-syntax-highlighting)/' ~/.zshrc
+source .zshrc
 
 # python packages
 sudo apt install python3-pwntools -y
