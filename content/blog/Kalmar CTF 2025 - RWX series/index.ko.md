@@ -293,7 +293,7 @@ Exploit 시나리오는 다음과 같다.
 |write process 생성||
 ||exec process 생성|
 |write "/would you ..." to `STDIN` of `sh`||
-||execute `w|sh`|
+||execute `w\|sh`|
 
 `w|sh` 명령을 실행하는 이유는 길이가 4바이트까지이고 `sh` 프로세스에 `STDIN`을 줘야하기 때문에 한 바이트짜리 명령어인 `w`를 사용하는 것이다.
 
