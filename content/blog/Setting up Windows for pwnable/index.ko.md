@@ -101,7 +101,7 @@ sudo apt update
 sudo apt upgrade -y
 
 # oh my zsh
-sudo apt install zsh -y
+sudo apt install zsh git -y
 sh -c "$(wget https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh -O -)"
 
 # zsh plugins
