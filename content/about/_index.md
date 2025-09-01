@@ -4,7 +4,7 @@ template = "info-page.html"
 insert_anchor_links = "left"
 +++
 
-Hi! I'm **bl4nk**, a cybersecurity specialist in the Republic of Korea Army. I am serving as a captain.
+Hi, I’m bl4nk, a cybersecurity specialist currently serving as a captain in the Republic of Korea Army.
 
 ## Education
 - 2020 ~ Present : **Korea University**
@@ -39,4 +39,5 @@ Hi! I'm **bl4nk**, a cybersecurity specialist in the Republic of Korea Army. I a
  - **Korean**(C2 : Mastery[^1])
  - **English**(C1 : Advanced)
  - **Japanese**(B1 : Threshold)
+
  [^1]: Based on CEFR(Common European Framework of Reference for languages).
