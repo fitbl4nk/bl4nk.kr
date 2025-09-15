@@ -4,7 +4,7 @@ date = "2025-04-25"
 description = "WinDbg + VMware를 이용한 윈도우 커널 디버깅"
 
 [taxonomies]
-tags = ["tools", "windows", "kernel", "windbg"]
+tags = ["tools", "windows kernel", "windbg"]
 
 [extra]
 toc_levels = 2
