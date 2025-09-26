@@ -178,12 +178,12 @@ sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin 
 ``` bash
 # zsh
 echo "export WIN=\"/mnt/c/Users/bl4nk\"" >> ~/.zshrc
-echo "alias cdd=\"cd \$WIN\"" >> .zshrc
-echo "mkdir -m 700 -p \${SHELL_SESSION_DIR:=\${ZDOTDIR:-\$HOME}/.zsh_sessions}" >> .zshrc
-echo "HISTFILE=\$SHELL_SESSION_DIR/\$TERM_SESSION_ID.history" >> .zshrc
-echo "source \$ZSH/oh-my-zsh.sh" >> .zshrc
-echo "unsetopt inc_append_history share_history" >> .zshrc
-echo "unset HISTFILE" >> .zshrc
+echo "alias cdd=\"cd \$WIN\"" >> ~/.zshrc
+echo "mkdir -m 700 -p \${SHELL_SESSION_DIR:=\${ZDOTDIR:-\$HOME}/.zsh_sessions}" >> ~/.zshrc
+echo "HISTFILE=\$SHELL_SESSION_DIR/\$TERM_SESSION_ID.history" >> ~/.zshrc
+echo "source \$ZSH/oh-my-zsh.sh" >> ~/.zshrc
+echo "unsetopt inc_append_history share_history" >> ~/.zshrc
+echo "unset HISTFILE" >> ~/.zshrc
 
 # tmux
 echo "setw -g mouse on" > ~/.tmux.conf
