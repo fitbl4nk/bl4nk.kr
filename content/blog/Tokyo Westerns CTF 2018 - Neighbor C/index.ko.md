@@ -121,9 +121,9 @@ gef➤  x/10gx $rsp
 
 `0x7fffffffebd0`이 9번째 format string이기 때문에, 다음과 같이 payload를 작성하면 `0x7fffffffebe0`에 담겨있는 값을 컨트롤할 수 있다.
 
--   %1c%9$hhn : 0x00007fffffffebf0 -> 0x00007fffffffeb01
--   %258c%9$hn : 0x00007fffffffebf0 -> 0x00007fffffff0102
--   %16909060c%9$n : 0x00007fffffffebf0 -> 0x00007fff01020304
+ - `%1c%9$hhn` : 0x00007fffffffebf0 -> 0x00007fffffffeb01
+ - `%258c%9$hn` : 0x00007fffffffebf0 -> 0x00007fffffff0102
+ - `%16909060c%9$n` : 0x00007fffffffebf0 -> 0x00007fff01020304
 
 디버깅 환경에서는 편의를 위해 ASLR을 꺼놓았기 때문에 `$rsp`의 첫 바이트가 `0xb0`로 고정되어있지만, 실제 서버 환경에서는 ASLR이 켜져있을 것이므로 이 때 1/16 확률로 exploit 성공률이 떨어지게 된다.
 
