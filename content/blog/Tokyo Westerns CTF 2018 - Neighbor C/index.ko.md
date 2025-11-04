@@ -129,7 +129,7 @@ gef➤  x/10gx $rsp
 
 아무튼 로컬 환경에서는 에러 메세지도 볼 수 있기 때문에 `fprintf(stderr, format)` 결과를 볼 수 있었는데, 서버 환경에서는 에러 메세지를 볼 수가 없다.
 
-따라서 위 stack control을 통해 먼저 해야할 것은`stderr`를 `stdout`으로 만들어서 다음 단계로 넘어가는 것이라고 판단했다.
+따라서 위 stack control을 통해 먼저 해야할 것은 `stderr`를 `stdout`으로 만들어서 다음 단계로 넘어가는 것이라고 판단했다.
 
 ### Libc leak
 
