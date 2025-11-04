@@ -4,7 +4,7 @@ date = "2025-11-02"
 description = "WhiteHat Contest 2025 Quals pwnable challenge"
 
 [taxonomies]
-tags = ["ctf", "pwnable", "uaf", "fsop", "unsorted bin"]
+tags = ["ctf", "pwnable", "uaf", "improper check", "logical bug", "fsop", "unsorted bin"]
 +++
 
 ## 0x00. Introduction
