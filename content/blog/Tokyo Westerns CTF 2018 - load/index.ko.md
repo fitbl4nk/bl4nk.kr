@@ -6,6 +6,7 @@ description = "Tokyo Westerns CTF 2018 pwnable challenge"
 [taxonomies]
 tags = ["ctf", "pwnable", "improper check", "bof", "file descriptor", "/dev/tty"]
 +++
+
 ## 0x00. Introduction
 ``` bash
 [*] '/home/user/load'

@@ -16,6 +16,7 @@ It seems that it was activated through the value of the `/proc/<pid>/seccomp` in
 
 In this post, I will describe the SECCOMP using the `prctl` function.
 
+
 ## 0x01. prctl function
 ``` c
 int prctl(int option, ...
@@ -124,7 +125,7 @@ hihi
 This is a mode that the user builds a rule set to block certain syscalls.
 The filter mode can be executed only when `no_new_privs` property is set via the `PR_SET_NO_NEW_PRIVS`.
 
-The rule set is an assembly-like syntax called Berkeley Packet Filter (BPF), which will be covered in detail in the [seccomp-tools](#0x03-seccomp-tools) section.
+The rule set is an assembly-like syntax called Berkeley Packet Filter (BPF), which will be covered in detail in the [seccomp-tools](#0x02-seccomp-tools) section.
 The following is an example code of filtering out `write` syscalls.
 
 
@@ -182,7 +183,8 @@ hihi
 
 I tried to debug the process because it printed a different message from the `SIGKILL` message of the strict mode, and I found that the process was terminated by `SIGSYS` in filter mode.
 
-## 0x03. seccomp-tools
+
+## 0x02. seccomp-tools
 Looking at the example code of `SECCOMP_MODE_FILTER`, you need to change the filtering rule into bytecodes and put them in the `filter` array.
 However, even if you are an expert, it is difficult to freely convert the desired BPF rule into bytecodes.
 In this case, seccomp-tools is a good tool to use.
@@ -349,7 +351,8 @@ When ran in `bash`, the output is colored and easy to check.
 
 ![image](https://github.com/user-attachments/assets/31a4405c-73b6-4427-8868-2352f33690e3)
 
-## 0x04. Expected Vulnerability
+
+## 0x03. Expected Vulnerability
 Of course, it depends on how it was coded, but I thought about vulnerabilities that could occur easily.
 
 ### x32 Syscall
@@ -434,7 +437,8 @@ As a result, the rule that was supposed to block the `write` syscall was not app
 
 Therefore, even if the entire filter cannot be overwritten like [Filter Overwrite](#filter-overwrite), if the rule itself can be made nonsensical with a few bytes, an error will occur, but the process will be maintained, so SECCOMP bypass is possible.
 
-## 0x05. References
+
+## 0x04. References
  - [https://man7.org/linux/man-pages/man2/prctl.2.html](https://man7.org/linux/man-pages/man2/prctl.2.html)
  - [https://jeongzero.oopy.io/06eebad5-8306-493f-9c6d-e7a04d5aacff](https://jeongzero.oopy.io/06eebad5-8306-493f-9c6d-e7a04d5aacff)
 - [https://velog.io/@woounnan/LINUX-Seccomp](https://velog.io/@woounnan/LINUX-Seccomp)

@@ -6,6 +6,7 @@ description = "Codegate CTF 2018 Qual pwnable challenge"
 [taxonomies]
 tags = ["ctf", "pwnable", "bof", "rop"]
 +++
+
 ## 0x00. Introduction
 ``` bash
 [*] '/home/user/BaskinRobins31'

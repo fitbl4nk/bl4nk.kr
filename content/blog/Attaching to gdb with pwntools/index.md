@@ -11,6 +11,7 @@ tags = ["tools", "pwnable", "pwntools", "gdb"]
 I mostly use `pwntools` for solving pwnable challenges, and `gdb` for debugging.
 In general I had to run a process and attach to the process in another terminal, but I could automate this procedure in python code with `pwntools` and `tmux`.
 
+
 ## 0x01. Debugging with pwntools
 ### Attach process
 The `attach` function of `gdb` module in `pwntools` lets us attach to a running process.
@@ -44,6 +45,7 @@ context.terminal = ['tmux', 'splitw', '-vf']    # split entire window vertically
 ```
 
 Using `tmux` is old-fashioned, but still powerful. You should note that the python code should be run after `tmux` session was opened. (refer to [Troubleshooting](#0x03-troubleshooting).)
+
 
 ## 0x02. Conclusion
 For now I'm using the following code as a template for pwnable.
@@ -115,6 +117,7 @@ For sending payload to the actual server, give `-s` or `--server` option and set
 ```
 
 FYI, the reason for importing the functions related to the packing again after `from pwn import *` is simply because vscode couldn't find the definition of these functions for no reason.
+
 
 ## 0x03. Troubleshooting
 ### Tmux session error

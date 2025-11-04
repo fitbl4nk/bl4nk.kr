@@ -16,6 +16,7 @@ SECCOMP(SECure COMPuting mode)는 프로세스 샌드박싱을 제공하는 기�
   
 본 포스트에서는 `prctl` 함수를 통한 SECCOMP 기법을 기술한다.
 
+
 ## 0x01. prctl 함수
 ``` c
 int prctl(int option, ...
@@ -124,7 +125,7 @@ hihi
 사용자가 직접 어떤 syscall을 차단할지 룰 셋을 만들어서 SECCOMP를 설정하는 모드이다.
 앞서 언급한 `PR_SET_NO_NEW_PRIVS`를 통해 `no_new_privs` 속성이 설정되어야 filter 모드를 실행할 수 있다.
 
-이 때 룰 셋은 Berkeley Packet Filter(BPF)라는 어셈블리같은 문법을 사용하는데, [seccomp-tools](#0x03-seccomp-tools) 부분에서 자세하게 다뤄보자.
+이 때 룰 셋은 Berkeley Packet Filter(BPF)라는 어셈블리같은 문법을 사용하는데, [seccomp-tools](#0x02-seccomp-tools) 부분에서 자세하게 다뤄보자.
 다음은 `write` syscall을 호출하지 못하게 필터링한 모드의 예시 코드이다.
 
 ``` c
@@ -180,7 +181,8 @@ hihi
 예시 코드를 컴파일해서 실행한 결과, `write`에서 `SIGSYS`가 발생했다.
 Strict mode에서의 `SIGKILL`과는 다른 메세지가 출력되길래 디버깅을 해봤는데 filter mode에서는 `SIGSYS`로 인해 프로세스가 종료되는 것을 확인했다.
 
-## 0x03 seccomp-tools
+
+## 0x02. seccomp-tools
 `SECCOMP_MODE_FILTER`의 예시 코드를 보면, `filter` 배열에 필터링 룰을 바이트 코드처럼 바꾸어서 넣어야 한다.
 하지만 아무리 숙련자라고 하더라도 원하는 BPF 룰을 자유자재로 바이트 코드화 하기는 어렵다.
 이럴 때 쓰기 좋은 것이 바로 seccomp-tools이다.
@@ -347,7 +349,8 @@ $ sudo seccomp-tools dump -p `pgrep filter`
 
 ![image](https://github.com/user-attachments/assets/31a4405c-73b6-4427-8868-2352f33690e3)
 
-## 0x04. Expected Vulnerability
+
+## 0x03. Expected Vulnerability
 당연히 코딩을 어떻게 하느냐에 따라 다르겠지만 발생할 법한 취약점들을 생각해보았다.
 좋은 아이디어나 댓글이 있다면 추가할 예정이다.
 
@@ -435,7 +438,8 @@ hihi
 
 따라서 Filter Overwrite처럼 필터 전체를 덮어쓰지 못하더라도 몇 바이트로 룰 자체를 말이 안되게 할 수 있다면 에러는 발생하되 프로세스는 유지되므로 SECCOMP bypass가 가능할 것이다.
 
-## 0x05. 참고자료
+
+## 0x04. 참고자료
  - [https://man7.org/linux/man-pages/man2/prctl.2.html](https://man7.org/linux/man-pages/man2/prctl.2.html)
  - [https://jeongzero.oopy.io/06eebad5-8306-493f-9c6d-e7a04d5aacff](https://jeongzero.oopy.io/06eebad5-8306-493f-9c6d-e7a04d5aacff)
 - [https://velog.io/@woounnan/LINUX-Seccomp](https://velog.io/@woounnan/LINUX-Seccomp)

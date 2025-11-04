@@ -4,7 +4,7 @@ date = "2024-07-08"
 description = "pwnable challenge"
 
 [taxonomies]
-tags = ["ctf", "pwnable", "loop codition", "bof", "rop"]
+tags = ["ctf", "pwnable", "loop codition", "improper check", "bof", "rop"]
 +++
 
 ## 0x00. Introduction
@@ -41,6 +41,7 @@ int __cdecl main(int argc, const char **argv, const char **envp)
 A 4-byte random value is read from `/dev/urandom` to the global variable `canary_backup`, which is stored in the local variable `canary` and compared at the end.
 If the value has changed, the process will be terminated, so this must be bypassed.
 
+
 ## 0x01. Vulnerability
 ``` c
   char s[256]; // [esp+10h] [ebp-128h] BYREF
@@ -69,6 +70,7 @@ But the `canary` still needs to be bypassed as mentioned.
 The next thing I noticed was the condition of the for loop.
 Since the `file` array is 32 bytes and the condition is `i <= 32`, in the last loop, `file[32]` points to the lowest byte of `fd`.
 
+
 ## 0x02. Exploit
 The problem that arise when `fd` is overwritten by exploiting the above vulnerailities are as follows.
 
@@ -95,10 +97,11 @@ Therefore, if I cover `fd` with a strange value and put `0x00000000` in the loca
 ```
 
 Now I tried to execute shell via shellcode, since the NX bit was off.
-But there was no point to leak stack address.
+**But there was no point to leak stack address...**
 I found the stack leak technique using the `environ` variable in libc, so I used this one for the exploit.
 
 Of course, using ROP is another solution, so I also wrote payload using `mprotect()`.
+
 
 ## 0x03. Payload
 ### payload using environ

@@ -18,6 +18,7 @@ tags = ["ctf", "pwnable", "improper check", "bof", "file descriptor", "/dev/tty"
     FORTIFY:  Enabled
 ```
 
+
 ## 0x01. Vulnerability
 ``` c
 int __fastcall load_file_4008FD(void *buf, const char *file_name, __off_t offset, size_t size)

@@ -11,6 +11,7 @@ tags = ["tools", "pwnable", "pwntools", "gdb"]
 pwnable 문제를 풀 때 스크립트 작성을 위해 `pwntools`를 주로 사용하고, 디버깅을 위해 `gdb`를 주로 사용하게 된다.
 일반적으로 프로세스를 생성하고 다른 터미널에서 `gdb`를 붙이는데, `pwntools`와 `tmux`를 이용해서 스크립트 내에서 이 작업을 자동화할 수 있다.
 
+
 ## 0x01. Debugging with pwntools
 ### Attach process
 `pwntools`에서 제공하는 `gdb` 모듈의 `attach` 함수를 이용해서 실행중인 프로세스에 디버거를 연결할 수 있다.
@@ -44,6 +45,7 @@ context.terminal = ['tmux', 'splitw', '-vf']    # 전체 창을 가로로 분리
 ```
 
 `tmux`를 쓰는게 꽤 깔끔해서 채용중인데, 다만 주의할 것이 꼭 `tmux` 세션을 열고 스크립트를 실행해야 한다.([Troubleshooting](#0x03-troubleshooting) 참고)
+
 
 ## 0x02. Conclusion
 결과적으로 다음 스크립트를 `exploit.py` 포맷처럼 사용하고 있다.
@@ -114,6 +116,7 @@ if __name__=='__main__':
 ```
 
 참고로, `from pwn import *`을 해놓고 두 번째 줄에서 굳이 또 packing 함수들을 import 하는 이유는 vscode에서 이상하게 packing 함수들을 못찾아서 underline이 생기기 때문에 단순히 보기 좋으라고 추가한 것이다.
+
 
 ## 0x03. Troubleshooting
 ### Tmux session error
