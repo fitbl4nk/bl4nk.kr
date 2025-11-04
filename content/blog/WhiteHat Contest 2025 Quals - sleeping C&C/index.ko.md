@@ -308,6 +308,7 @@ int send_command_1A70()
 
 이후 `puts`나 `printf`를 만나면 `_IO_wfile_overflow`가 호출되며 쉘을 실행시킬 수 있다.
 
+
 ## 0x03. Payload
 ``` python
 from pwn import *
