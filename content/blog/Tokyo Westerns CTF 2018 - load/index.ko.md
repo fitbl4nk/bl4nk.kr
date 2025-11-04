@@ -4,10 +4,9 @@ date = "2024-07-10"
 description = "Tokyo Westerns CTF 2018 pwnable challenge"
 
 [taxonomies]
-tags = ["ctf", "pwnable", "file descriptor", "/dev/tty"]
+tags = ["ctf", "pwnable", "improper check", "bof", "file descriptor", "/dev/tty"]
 +++
 ## 0x00. Introduction
-
 ``` bash
 [*] '/home/user/load'
     Arch:     amd64-64-little
@@ -18,8 +17,8 @@ tags = ["ctf", "pwnable", "file descriptor", "/dev/tty"]
     FORTIFY:  Enabled
 ```
 
-## 0x01. Vulnerability
 
+## 0x01. Vulnerability
 ``` c
 int __fastcall load_file_4008FD(void *buf, const char *file_name, __off_t offset, size_t size)
 {
@@ -47,12 +46,11 @@ int __fastcall load_file_4008FD(void *buf, const char *file_name, __off_t offset
 
 `main()`의 `buf`는 `rbp-0x30`에 위치해있고 원하는 만큼 `size`를 입력할 수 있으니 BOF 취약점이 발생한다.
 
-## 0x02. Exploit
 
+## 0x02. Exploit
 BOF 취약점이 있으니 libc leak을 하려고 했는데 PLT가 있는 `puts()`든 `_printf_chk()`든 이상하게 출력이 안됐다.
 
 그래서 디버깅을 해보니 `puts()`의 리턴 값이 `-1`인 것을 확인했고, 뭔가 에러가 발생했음을 알았다.
-
 언제 이런 에러가 발생하는지 찾아보다가 `stdout`에 문제가 생기면 그럴 수 있다는 정보를 찾아서 확인해보니...
 
 ``` c
@@ -65,7 +63,6 @@ int close_4008D8()
 ```
 
 `load_file_4008FD()`이 끝난 후 `main()`이 종료되기 전에 `close_4008D8()`라는 함수가 호출되는데, 여기에서 `stdout`을 close해버린다.
-
 그래서 구글링을 열심히 해보니 `/dev/tty`를 `open`하면 다시 `stdout`을 살릴 수 있다는 것을 알았다.
 
 문제는 `/dev/tty`를 어디에 넣어놓고 `open()`에 전달할 것이냐인데, BOF 취약점을 트리거하기 위해 `file_name`에 `/proc/self/fd/0`을 넣는 과정에서 `\x00`을 하나 추가하고 `/dev/tty`를 전달하면 될 것 같았다.
@@ -83,11 +80,9 @@ int close_4008D8()
 위 payload를 ROP chain에 3번 넣어서 `/proc/self/fd/`에 순서대로 0, 1, 2가 생성되는 것을 확인했다.
 
 이렇게 leak을 하는데에는 성공했으나 `stdin`을 살렸음에도 다음 playoad를 전송하는 것에 실패했다.
-
 그래서 고민이 됐던게 leak을 해봤자 다음 입력을 줄 수가 없으므로 한번에 입력을 줘서 flag를 `open` -> `read` -> `write`를 다 시켜야하는데 `rdx` 관련 가젯이 없다.
 
 그러면 `read`의 세 번째 인자인 `size` 컨트롤이 불가능하기 때문에 `open("flag", 'r');`을 한 이후의 `rdx` 값이 내용을 읽어오기에 충분히 큰 값이기를 기도해야하는데...
-
 실제로 확인해보니 `open`이 종료되고 난 `rdx` 값이 0이었다.
 
 어떻게 출력을 할지 한참을 고민하다가...
@@ -98,15 +93,15 @@ int close_4008D8()
 
 마침 동일한 로직을 수행하는 함수가 코드 영역에 있었다!
 
--   `rdi` : pop rdi; ret; 가젯 활용, free space인 byte_601040
--   `rsi` : pop rsi; pop r15; ret; 가젯 활용, BOF 트리거 할 때 넣은 "flag" 위치
--   `rdx` : open 종료 후 0
--   `rcx` : open 종료 후 0x00007ffff7e9e53b (충분히 큰 값)
+- `rdi` : `pop rdi; ret;` 가젯 활용, free space인 `byte_601040`
+- `rsi` : `pop rsi; pop r15; ret;` 가젯 활용, BOF 트리거 할 때 넣은 `flag` 위치
+- `rdx` : `open` 종료 후 `0`
+- `rcx` : `open` 종료 후 `0x7ffff7e9e53b` (충분히 큰 값)
 
 이런식으로 레지스터를 컨트롤해주면 `flag`를 출력할 수 있었다.
 
-## 0x03. Payload
 
+## 0x03. Payload
 ``` python
 from pwn import *
 from pwnlib.util.packing import p32, p64, u32, u64
