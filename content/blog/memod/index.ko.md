@@ -104,7 +104,7 @@ int __cdecl main(int argc, const char **argv, const char **envp)
 
 
 ## 0x03. Payload
-### environ을 이용한 payload
+### Payload Using `environ`
 ``` python
 from pwn import *
 from pwnlib.util.packing import p32, p64, u32, u64
@@ -189,7 +189,7 @@ if __name__=='__main__':
     main()
 ```
 
-### mprotect를 이용한 payload
+### Payload Using `mprotect`
 ``` python
 from pwn import *
 from pwnlib.util.packing import p32, p64, u32, u64

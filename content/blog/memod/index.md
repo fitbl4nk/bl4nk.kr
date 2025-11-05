@@ -104,7 +104,7 @@ Of course, using ROP is another solution, so I also wrote payload using `mprotec
 
 
 ## 0x03. Payload
-### payload using environ
+### Payload Using `environ`
 ``` python
 from pwn import *
 from pwnlib.util.packing import p32, p64, u32, u64
@@ -189,7 +189,7 @@ if __name__=='__main__':
     main()
 ```
 
-### payload using mprotect
+### Payload Using `mprotect`
 ``` python
 from pwn import *
 from pwnlib.util.packing import p32, p64, u32, u64
