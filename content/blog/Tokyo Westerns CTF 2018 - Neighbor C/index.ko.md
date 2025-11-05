@@ -4,10 +4,10 @@ date = "2024-07-14"
 description = "Tokyo Westerns CTF 2018 pwnable challenge"
 
 [taxonomies]
-tags = ["ctf", "pwnable", "double staged fsb"]
+tags = ["ctf", "pwnable", "double staged fsb", "docker setting"]
 +++
-## 0x00. Introduction
 
+## 0x00. Introduction
 ``` bash
 [*] '/home/user/neighbor'
     Arch:     amd64-64-little
@@ -18,9 +18,7 @@ tags = ["ctf", "pwnable", "double staged fsb"]
 ```
 
 ### Environment
-
 제공된 libc가 예전 버전이라 최신 loader로 로드가 안된다.
-
 그렇다고 로컬 libc를 이용하면 풀이가 어려워지기 때문에 docker로 서버를 구성해서 환경을 구축하기로 했다.
 
 ``` bash
@@ -52,7 +50,6 @@ def main():
 ```
 
 그리고 디버거가 libc를 제대로 읽어서 심볼을 로드하기 위해서 `sysroot` 인자를 줬는데, 그러면 현재 위치를 `root` 디렉토리로 인식하고 libc 파일을 찾게 된다.
-
 따라서 vmmap을 통해 libc 경로를 확인하고 그에 맞춰서 디렉토리를 생성한 후 libc 파일을 복사해주면 된다.
 
 ``` bash
@@ -60,8 +57,8 @@ def main():
 libc-2.23.so
 ```
 
-## 0x01. Vulnerability
 
+## 0x01. Vulnerability
 ``` c
 void __fastcall __noreturn sub_8D0(FILE *stderr)
 {
@@ -94,14 +91,11 @@ void __fastcall __noreturn main(int a1, char **a2, char **a3)
 
 저번 문제에서도 경험했지만... 취약점이 간단하면 exploit이 복잡해지는데 이 문제도 그런 것 같다.
 
+
 ## 0x02. Exploit
-
-### Stack control
-
+### Stack Control
 취약점을 활용하기에 앞서 문제는 `format`이 전역변수이기 때문에 stack에 값을 입력할 수가 없다.
-
 그러면 stack에 포인터를 만들 수 없어서 FSB의 핵심인 `%n`을 통해 포인터가 가리키는 곳에 값을 쓰는 것이 불가능하다.
-
 따라서 stack에 있는 값으로 적절하게 원하는 곳에 값을 쓸 수 있는 primitive를 획득해야 한다.
 
 ``` bash
@@ -114,7 +108,6 @@ gef➤  x/10gx $rsp
 ```
 
 그래서 `fprintf()`를 할 때의 stack을 출력해보았는데, `push rbp`를 하다가 생긴 stack 영역의 주소가 두 개 있었다.
-
 여기에서 왜 굳이 `main()` -> `sub_937()` -> `sub_8D0()`으로 함수를 호출할까에 대한 의문이 풀렸는데, Double Staged FSB가 가능하게 하기 위함이었다.
 
 `0x7fffffffebd0($rsp+0x20)`이 `0x7fffffffebe0($rsp+0x30)`을 가리키고 있어서 FSB를 이용하면 `0x7fffffffebe0`에 원하는 주소를 구성할 수 있다.
@@ -128,11 +121,9 @@ gef➤  x/10gx $rsp
 디버깅 환경에서는 편의를 위해 ASLR을 꺼놓았기 때문에 `$rsp`의 첫 바이트가 `0xb0`로 고정되어있지만, 실제 서버 환경에서는 ASLR이 켜져있을 것이므로 이 때 1/16 확률로 exploit 성공률이 떨어지게 된다.
 
 아무튼 로컬 환경에서는 에러 메세지도 볼 수 있기 때문에 `fprintf(stderr, format)` 결과를 볼 수 있었는데, 서버 환경에서는 에러 메세지를 볼 수가 없다.
-
 따라서 위 stack control을 통해 먼저 해야할 것은 `stderr`를 `stdout`으로 만들어서 다음 단계로 넘어가는 것이라고 판단했다.
 
-### Libc leak
-
+### Libc Leak
 ``` bash
 # fprintf(stderr, format);
 gef➤  x/5i 0x55555540090e
@@ -144,11 +135,9 @@ gef➤  x/5i 0x55555540090e
 ```
 
 `fprintf`의 `stderr`는 libc의 `Data`영역에 있는 `stderr`가 아닌, `sub_8D0()`를 호출할 때 인자로 전달한 stack에 있는 `stderr`이다.
-
 그리고 이 `stderr`는 `$rbp-0x8`으로 접근할 수 있는데, 이 주소는 `0x7fffffffebc8($rsp+0x18)`이다.
 
 다행히 컨트롤할 수 있는 `0x7fffffffebe0`에 이미 stack 영역의 주소가 담겨있으므로, 첫 바이트만 `0xc8`으로 덮으면 `0x7fffffffebe0`이 `0x7fffffffebc8`을 가리키게 된다.
-
 그러면 `0x7fffffffebe0`이 11번째 format string이기 때문에 `stderr`를 `stdout`으로 바꿀 수 있다.
 
 ``` bash
@@ -179,16 +168,14 @@ gef➤  x/10gx $rsp
 
 자세히 보면 5번째 format string부터 stack의 내용과 일치하는 것을 확인할 수 있는데, stack 앞의 format string은 다음 calling convention에 따라 레지스터의 값들을 출력해준다고 한다.
 
--   `rsi`, `rdx`, `rcx`, `r8`, `r9`
+- `rsi`, `rdx`, `rcx`, `r8`, `r9`
 
 하지만 위 경우는 `rdx`부터 출력되는 것을 볼 수 있는데, `fprintf`에 두 번째 인자가 들어가서 그런게 아닐까 생각한다.
 
 아무튼 다시 돌아와서 stack의 10번째 값에 libc의 주소가 들어가있으므로 offset을 계산해서 빼주면 libc의 base 주소를 획득할 수 있다.
 
-### Exploit strategy
-
+### Triggering `malloc`
 이제 가장 중요한 **어디에 무엇을 쓸 것인지**에 대한 부분인데, 예전 libc라서 `malloc_hook`을 사용할 수 있다.
-
 따라서 **어디에**는 결정되었고, one shot 가젯을 확인해보았다.
 
 ``` bash
@@ -207,26 +194,23 @@ constraints:
 ```
 
 다행히 조건이 빡세지 않아서 확인해봤는데, `0xf1247`에 위치한 가젯이 활용할 수 있어 보였다.
-
 따라서 **무엇을**도 자연스럽게 해결되었는데, 막상 생각해보니 `malloc`을 어디선가 호출해야 `malloc_hook`이 호출될 것인데...
 
 while문 흐름상 호출되는 함수는 `fgets`와 `fprintf`밖에 없다.
 
 혹시 함수 내부적으로 `malloc`이 호출되는지 확인해보려고 했는데, `fgets`는 간단해서 `malloc`이 없다는 것을 확인할 수 있었다.
-
 반면 `fprintf`는 `vfprintf`을 호출하는데 이 안에 너무 많은 코드가 있어서 확인이 어려웠다.
 
 그래서 구글링을 해보니 정보가 조금 있었다.
 
--   [https://stackoverflow.com/questions/6743034/does-fprintf-use-malloc-under-the-hood](https://stackoverflow.com/questions/6743034/does-fprintf-use-malloc-under-the-hood)
--   [https://github.com/Naetw/CTF-pwn-tips?tab=readme-ov-file](https://github.com/Naetw/CTF-pwn-tips?tab=readme-ov-file#use-printf-to-trigger-malloc-and-free)
+- [https://stackoverflow.com/questions/6743034/does-fprintf-use-malloc-under-the-hood](https://stackoverflow.com/questions/6743034/does-fprintf-use-malloc-under-the-hood)
+- [https://github.com/Naetw/CTF-pwn-tips?tab=readme-ov-file](https://github.com/Naetw/CTF-pwn-tips?tab=readme-ov-file#use-printf-to-trigger-malloc-and-free)
 
 확인해보니 format string을 통해 만들어진 output string이 사이즈가 `0x10001` 이상이면 `malloc`을 트리거할 수 있는 것 같다.
 
 그래서 거꾸로 `malloc`을 호출하는 함수, `j_malloc`을 호출하는 함수를 xref해봤는데 `vfprintf`가 있는 것 까지는 확인했다.
 
-### Arbitrary write
-
+### Arbitrary Write
 ``` bash
 gef➤  x/10gx $rsp
 0x7fffffffebb0: 0x0000555555400a88      0x00007ffff7dd2540
@@ -238,12 +222,10 @@ gef➤  x/10gx $rsp
 
 자, 다시 stack을 보면 `0x7fffffffebc0($rsp+0x10)`이 `NULL`로 비어있다.
 
-이 비어있는 공간(`free_space`)에 Double Staged FSB를 이용해 1차적으로 우리가 원하는 주소(`addr`)을 만들어주고
-
+이 비어있는 공간(`free_space`)에 Double Staged FSB를 이용해 1차적으로 우리가 원하는 주소(`addr`)을 만들어주고, 
 만들어진 주소를 포인터로 사용해 다시 Double Staged FSB를 이용하여 원하는 값(`value`)을 쓸 것이다.
 
 당연히 `addr`은 `malloc_hook`이 될 것이고, `value`는 로딩된 위치의 one shot 가젯이 될 것이다.
-
 이 과정을 python으로 만들면 다음과 같이 만들 수 있다.
 
 ``` python
@@ -280,8 +262,8 @@ def stack_control(s, stack, value):
 arbitrary_write(s, malloc_hook, one_gadget)
 ```
 
-## 0x03. Payload
 
+## 0x03. Payload
 ``` python
 from pwn import *
 from pwnlib.util.packing import p32, p64, u32, u64
