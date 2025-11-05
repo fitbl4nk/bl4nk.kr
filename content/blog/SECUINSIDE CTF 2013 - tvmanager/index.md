@@ -141,7 +141,7 @@ int broadcast_1DA7()
 
 Then when we `broadcast` with `movie_1`, since `size` is 0x4, it reads the file contents into `stack_buf` and copies byte by byte.
 However, since we created `movie_1` and then created `movie_2`, the file currently has 0x1000 bytes of content written.
-In the above code, it copies to `stack_buf` until `\xff` appears, so we can overwrite not only `size` and `contents` after `stack_buf`, but even the `return address`.
+In the above code, it copies to `stack_buf` until `\xff` appears, so we can overwrite not only `size` and `contents` after `stack_buf`, but even the return address.
 
 We can either cause an overflow or leak other values this way.
 Now let's assume a situation where `movie_1` has a `size` of 0x3ff and `movie_2` has a `size` of 0x400.

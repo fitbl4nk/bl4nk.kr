@@ -141,7 +141,7 @@ int broadcast_1DA7()
 
 그러면 `movie_1`로 `broadcast`를 했을 때 `size`가 0x4이므로 `stack_buf`에 파일 내용을 읽어 한 바이트씩 복사하게 된다.
 그런데 `movie_1`을 생성하고 `movie_2`를 생성했으므로 현재 파일에는 0x1000바이트 길이의 내용이 쓰여져 있을 것이다.
-위 코드에서는 `\xff`가 나올 때까지 `stack_buf`에 복사를 하므로 `stack_buf` 뒤의 `size`, `contents`는 물론 `return address`까지도 덮을 수 있다.
+위 코드에서는 `\xff`가 나올 때까지 `stack_buf`에 복사를 하므로 `stack_buf` 뒤의 `size`, `contents`는 물론 return address까지도 덮을 수 있다.
 
 이렇게 아예 overflow를 내버리거나 다른 값들을 leak할 수 있는데, 이번에는 `movie_1`의 `size`는 0x3ff, `movie_2`의 `size`는 0x400으로 생성한 상황을 가정해보자.
 이 때 `movie_2`의 내용 첫 바이트를 `\xff`로 한다면 바로 복사가 종료되어 한 바이트도 바꾸지 않은 stack의 상황을 볼 수 있다.
@@ -315,7 +315,7 @@ int list_1821()
     broadcast(s, 6, 0, 1, 7777)
 ```
 
-여기에서도 마찬가지로 새로운 충돌쌍이 필요하고 leak한 libc 주소에 one shot 가젯의 offset을 더해서 `return address`에 써주면 쉘을 획득할 수 있다.
+여기에서도 마찬가지로 새로운 충돌쌍이 필요하고 leak한 libc 주소에 one shot 가젯의 offset을 더해서 return address에 써주면 쉘을 획득할 수 있다.
 
 
 ## 0x03. Payload
