@@ -20,6 +20,7 @@ drwxr-x--- 25 user user  4096 Jul 30 08:49 ..
 -rw-r--r--  1 user user    21 Jul 17 03:05 run.sh
 -rwxr-xr-x  1 user user   299 Jul 17 03:05 vm_name.py
 ```
+
 `run.sh`로 `vm_name.py`를 실행하면 `_7amebox_patched.py`에 구현된 emulator로 `mic_check.firm`을 실행하는 구조이다.
 
 ``` python
@@ -42,6 +43,7 @@ def write_memory_tri(self,addr,data_list, count):
     ...
 ```
 byte가 **7bit**, word가 **3byte**인 emulator에서 firmware의 취약점을 찾고 exploit을 해야한다.
+
 
 ## 0x01. Vulnerability
 ```
@@ -72,10 +74,10 @@ main:
     0x5e:  1d 50           pop pc
 ```
 firmware 이름이 `mic_check`인 만큼 취약점은 단순하다.
-
 `bp-0x3c`위치에 0x42만큼 read를 하기 때문에 BOF가 발생한다.
 
 다만 SFP 위에 canary 값인 0x12345를 신경써서 값을 써야한다.
+
 
 ## 0x02. Exploit
 NX가 꺼져있는 환경이므로 stack에 shellcode를 구성해서 payload를 작성했다.
@@ -102,7 +104,9 @@ NX가 꺼져있는 환경이므로 stack에 shellcode를 구성해서 payload를
     payload += p21(0x0)                     # sfp
     payload += p21(0xf5f9e)                 # ret
 ```
+
 `buf` 사이즈가 생각보다 빡빡해서 최적화를 신경써주어야 했다.
+
 
 ## 0x03. Payload
 ``` python
