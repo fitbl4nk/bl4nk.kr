@@ -8,13 +8,13 @@ tags = ["tools", "pwnable", "pwntools", "gdb"]
 +++
 
 ## 0x00. Introduction
-I mostly use `pwntools` for solving pwnable challenges, and `gdb` for debugging.
-In general I had to run a process and attach to the process in another terminal, but I could automate this procedure in python code with `pwntools` and `tmux`.
+When solving pwnable challenges, I primarily use `pwntools` for scripting and `gdb` for debugging.
+Usually, you'd spawn a process and attach `gdb` from another terminal - but with `pwntools` and `tmux`, we can automate all of this within the script itself.
 
 
 ## 0x01. Debugging with pwntools
 ### Attach process
-The `attach` function of `gdb` module in `pwntools` lets us attach to a running process.
+The `attach` function from pwntools' `gdb` module lets you attach a debugger to a running process:
 
 ``` python
 bp = {
@@ -31,11 +31,11 @@ continue
 gdb.attach(s, gs)
 ```
 
-If gdb script was given to the second argument, making `breakpoints` and running `continue` can also be automated.
+The second argument takes a gdb script, so you can automate setting breakpoints and continuing execution.
 
 ### Set terminal
-We can set where to display the attached debugger.
-The `terminal` variable of `context` module decides where and how to display, you can choose whatever you want.
+You need to configure where the attached debugger shows up.
+Simple enough with the `context` module's `terminal` variable - just pick your preferred layout:
 
 ``` python
 context.terminal = ['tmux', 'splitw', '-h']     # split current window horizontally
@@ -44,11 +44,12 @@ context.terminal = ['tmux', 'splitw', '-hf']    # split entire window horizontal
 context.terminal = ['tmux', 'splitw', '-vf']    # split entire window vertically
 ```
 
-Using `tmux` is old-fashioned, but still powerful. You should note that the python code should be run after `tmux` session was opened. (refer to [Troubleshooting](#0x03-troubleshooting).)
+I know it's pretty old-fashioned, but I've been using `tmux` since it's pretty clean.
+The one thing you should notice is make sure you're actually running inside a `tmux` session before executing the script (see [Troubleshooting](#0x03-troubleshooting)).
 
 
 ## 0x02. Conclusion
-For now I'm using the following code as a template for pwnable.
+Here's the final script I use as my `exploit.py` template:
 
 ``` python
 from pwn import *
@@ -94,34 +95,36 @@ if __name__=='__main__':
     main(args.server, args.port, args.debug)
 ```
 
-There are three arguments given to `main` function.
-First, if `-p` or `--port` was given, it uses `remote` to connect to the server and if not, it attaches local process.
+The `main` function takes three arguments.
+If `-p` or `--port` is provided, it connects remotely.
+Otherwise, it runs locally for debugging:
 
 ``` bash
 ➜  python3 exploit.py -p 7777
 ➜  python3 exploit.py --port 7777
 ```
 
-And if debugging is not needed anymore, give `-d` or `--debug` option and set 0 like the following. Then it will execute without debugging.
+When you're done debugging, pass 0 to `-d` or `--debug` to run without a debugger:
 
 ``` bash
 ➜  python3 exploit.py -d 0
 ➜  python3 exploit.py --debug 0
 ```
 
-For sending payload to the actual server, give `-s` or `--server` option and set the domain or IP address of the server, without debugging.
+Finally, to hit the actual server, pass the domain or IP to `-s` or `--server` - and definitely disable debugging:
 
 ``` bash
 ➜  python3 exploit.py -s server.com -d 0
 ➜  python3 exploit.py --server x.x.x.x --debug 0
 ```
 
-FYI, the reason for importing the functions related to the packing again after `from pwn import *` is simply because vscode couldn't find the definition of these functions for no reason.
+Side note: I'm already doing `from pwn import *`, but I explicitly import the packing functions again on line 2 because vscode doesn't seem to find them.
+Otherwise it shows annoying underlines.
 
 
 ## 0x03. Troubleshooting
 ### Tmux session error
-This error occurred when I ran the code for the first time.
+This is what greeted me when I first ran the script:
 
 ``` bash
 ➜  python3 exploit.py
@@ -142,10 +145,11 @@ ValueError: invalid literal for int() with base 10: b''
 [*] Stopped process './challenge' (pid 3886107)
 ```
 
-At first, I thought the error was something to do with the type of the pid because it occurred in `gdb.attach(s, gs)` and was ValueError, but it was a completely different problem.
-This error occurs because there is no existing `tmux` session, though the code creates a terminal in a `tmux` session.
+The error hit at `gdb.attach(s, gs)` with a type issue, so I spent way too long thinking it was a pid datatype mismatch.
+Turns out it was something completely different.
 
-I thought it would make one if there isn't :p
+The script tries to create a terminal in a `tmux` session - but there was no active `tmux` session to attach to.
+I naively assumed it would just create one automatically...
 
 ```
 ➜  tmux
