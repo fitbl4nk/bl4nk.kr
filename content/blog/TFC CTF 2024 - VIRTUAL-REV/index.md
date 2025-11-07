@@ -7,4 +7,4 @@ description = "TFC CTF 2024 reversing challenge"
 tags = ["ctf", "reversing", "virtual machine"]
 +++
 
-Only available in Korean for now ;)
+To be uploaded...
