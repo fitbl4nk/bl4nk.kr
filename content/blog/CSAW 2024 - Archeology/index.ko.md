@@ -15,6 +15,7 @@ chal  hieroglyphs.txt  message.txt
 chal: ELF 64-bit LSB pie executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, BuildID[sha1]=bbcf6cbfa61b68c7b8bfa3145852d06580a55643, for GNU/Linux 3.2.0, not stripped
 ```
 
+
 ## 0x01. Concept
 ``` c
 int __fastcall main(int argc, const char **argv, const char **envp)
@@ -247,6 +248,7 @@ def nnnnur(data):
         res.append(d)
     return res
 ```
+
 
 ## 0x03. Payload
 ``` python
