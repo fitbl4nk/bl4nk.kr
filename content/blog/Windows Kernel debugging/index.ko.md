@@ -13,6 +13,7 @@ toc_levels = 2
 ## 0x00. Introduction
 Windows 커널을 분석하기 위한 환경을 구축하고 유용한 명령어를 정리한 포스트이다.
 
+
 ## 0x01. Setup
 ### Host(Debugger)
 예전에는 Windows SDK, Virtual KD 등 편의성을 위해 설치 과정이 복잡했었는데, 이제는 WinDbg가 정식 출시되며 많이 간단해졌다.
@@ -21,7 +22,6 @@ Microsoft Store에 가서 WinDbg를 설치하고 실행하면 끝이다.
 상단 메뉴의 File -> Start Debugging -> Attach to kernel에서 COM을 선택한 뒤 다음과 같이 설정한다.
 
 ![host](image.png)
-![Image](https://github.com/user-attachments/assets/e5848517-fb7b-44f7-9a8c-430cd1d64553)
 
 설정을 완료하고 오른쪽 하단의 "OK"를 누르면 디버깅 대기 상태에 들어간다.
 
@@ -46,6 +46,7 @@ bcdedit /dbgsettings serial debugport:1 baudrate:115200
 
 마지막으로 대상 vm을 실행해주면 host와 연결된다.
 
+
 ## 0x02. Commands
 ### Modules
 #### `lm` (List Modules)
@@ -60,7 +61,6 @@ kd> lm Dvm fltmgr
 참고로 kernel mode 영역은 `fffff800'00000000`같이 높은 주소에 로드된다.
 
 #### `x` (eXamine symbols)
-
 심볼을 탐색하거나 특정 심볼을 찾는다.
 
 ``` windbg
