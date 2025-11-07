@@ -104,6 +104,7 @@ if __name__ == '__main__':
 
 이런 식으로 RWX-Bronze, RWX-Silver, RWX-Gold, RWX-Diamond가 있는데 길이가 점점 줄어들거나 환경이 바뀌는 형식이다.
 
+
 ## 0x01. RWX-Bronze
 제일 처음 문제인 Bronze에서는 7바이트 제한이 걸려있다.
 
@@ -129,6 +130,7 @@ def execute():
 이후 `/exec` 엔드포인트를 통해 다음 명령어를 실행해주면 된다.
 - `sh<~x`
 
+
 ## 0x02. RWX-Silver
 이번에는 5바이트 제한이 걸려있다.
 
@@ -147,6 +149,7 @@ def execute():
 
 Bronze와 마찬가지로 `/home/user/x`를 생성하고 다음 명령어를 실행해주면 된다.
 - `. ~/x`
+
 
 ## 0x03. RWX-Gold
 이번에는 3바이트인데 여기부터는 대회중에 못풀었다.
@@ -239,6 +242,7 @@ def main():
 if __name__ == '__main__':
     main()
 ```
+
 
 ## 0x04. RWX-Diamond
 마지막 문제는 오히려 4바이트로 길이가 늘어났다.
