@@ -4,7 +4,7 @@ date = "2024-08-28"
 description = "Codegate CTF 2024 Quals pwnable challenge"
 
 [taxonomies]
-tags = ["ctf", "pwnable", "race condition", "tls"]
+tags = ["ctf", "pwnable", "race condition", "thread local storage"]
 +++
 
 ## 0x00. Introduction
@@ -50,7 +50,7 @@ for ( i = tmp; i < food_count; ++i )
 }
 ```
 
-Since it unconditionally copies from `food[i + 1]` to `food[i]` without checking what's at `food[i + 1]`, we can leak important data if it exists there.
+Since it copies from `food[i + 1]` even though the `food` is full, we can leak important data after the `food` structures.
 
 ### Race Condition
 Looking at the code for `start_routine_16B1` that checks remaining time:
@@ -166,8 +166,8 @@ gef➤
 ```
 
 The area corresponding to `food[4]` contains addresses to TLS(Thread Local Storage) and heap regions, plus a canary value (though not needed for this challenge).
-Since you can insert up to 4 foods, creating `food[0]`~`food[3]` then removing `food[0]` copies `food[4]` data to `food[3]`.
-Removing `food[0]` four times this way copies the `food[4]` area data to `food[0]`~`food[3]`.
+Since you can insert up to 4 foods, creating `food[0]`\~`food[3]` then removing `food[0]` copies `food[4]` data to `food[3]`.
+Removing `food[0]` four times this way copies the `food[4]` area data to `food[0]`\~`food[3]`.
 
 Note that `0x7ffff7da56c0` stored at `0x7ffff7da56c0` is the TLS address - the value returned when executing `__readfsqword(0)`.
 If this value changes, `__readfsqword(0)` returns the changed value, so we need to be careful.

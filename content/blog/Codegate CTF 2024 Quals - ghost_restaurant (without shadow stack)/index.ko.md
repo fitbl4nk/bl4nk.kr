@@ -50,7 +50,7 @@ for ( i = tmp; i < food_count; ++i )
 }
 ```
 
-이 때 `food[i + 1]`에 어떤 값이 있는지 확인하지 않고 무조건 `food[i]`로 복사를 해오기 때문에 `food[i + 1]`에 중요한 데이터가 있다면 leak이 가능하다.
+이 때 `food`가 꽉 찼을 때도 `food[i + 1]`에서 데이터를 복사하므로 `food` 구조체 다음 영역에 중요한 데이터가 있다면 leak이 가능하다.
 
 ### Race Condition
 `food`의 남은 시간을 체크하는 `start_routine_16B1`의 코드를 보면,
@@ -166,8 +166,8 @@ gef➤
 ```
 
 `food[4]`에 해당하는 영역에 위와 같이 TLS(Thread Local Storage), heap 영역에 대한 주소와 이 문제에서 필요하지는 않지만 canary 값이 저장되어있다.
-`food`는 최대 4개까지 `insert`할 수 있으므로 `food[0]`~`food[3]`까지 생성했다가 `food[0]`을 `remove`를 하면 `food[4]`의 데이터를 `food[3]`에 복사한다.
-이런 식으로 `food[0]`을 4번 `remove`하면 `food[4]` 영역의 데이터가 `food[0]`~`food[3]`에 복사가 된다.
+`food`는 최대 4개까지 `insert`할 수 있으므로 `food[0]`\~`food[3]`까지 생성했다가 `food[0]`을 `remove`를 하면 `food[4]`의 데이터를 `food[3]`에 복사한다.
+이런 식으로 `food[0]`을 4번 `remove`하면 `food[4]` 영역의 데이터가 `food[0]`\~`food[3]`에 복사가 된다.
 
 참고로 `0x7ffff7da56c0`에 저장된 `0x7ffff7da56c0`가 TLS 주소로, `__readfsqword(0)`를 실행했을 때 반환되는 값이다.
 이 값이 다른 값으로 바뀌게 되면 `__readfsqword(0)`의 결과가 바뀐 값으로 반환되어 주의해야 한다.
