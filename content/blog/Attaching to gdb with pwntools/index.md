@@ -5,6 +5,9 @@ description = "How to attach a debugger to a process with python code"
 
 [taxonomies]
 tags = ["tools", "pwnable", "pwntools", "gdb"]
+
+[extra]
+pinned = true
 +++
 
 ## 0x00. Introduction

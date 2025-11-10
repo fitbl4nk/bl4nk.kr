@@ -5,6 +5,9 @@ description = "python 코드로 프로세스 디버거에 붙이기"
 
 [taxonomies]
 tags = ["tools", "pwnable", "pwntools", "gdb"]
+
+[extra]
+pinned = true
 +++
 
 ## 0x00. Introduction
