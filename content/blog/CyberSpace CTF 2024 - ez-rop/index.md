@@ -4,7 +4,7 @@ date = "2024-09-15"
 description = "CyberSpace CTF 2024 pwnable challenge"
 
 [taxonomies]
-tags = ["ctf", "pwnable", "fake stack", "rop"]
+tags = ["ctf", "pwnable", "fake stack", "rop", "partial overwrite"]
 +++
 
 ## 0x00. Introduction
@@ -48,12 +48,10 @@ Start              End                Offset             Perm Path
 ```
 
 Since PIE is disabled, the DATA region address `0x404000` is fixed.
+As `sub_401192()` executes `leave; ret` when terminating, putting roughly `0x404800` (around the middle) in sfp allows manipulating `rsp` to that value.
 
-Since `sub_401192()` executes `leave; ret` when terminating, putting roughly `0x404800` (around the middle) in sfp allows manipulating `rsp` to that value.
-
-Now we need to pass `rsp` as an argument to the input-receiving function, but there were no usable gadgets.
-
-Instead, I could pass the value by utilizing that `rdi`'s value is set through `rax` and `rbp` during the `fgets` input process.
+Now we need to pass `rsp` as an argument to the read function, but there were no usable gadgets.
+Instead, I could pass the value by utilizing the fact that `rdi`'s value is set through `rax` and `rbp` during the `fgets` input process.
 
 ```
 .text:0000000000401192                 push    rbp
@@ -84,7 +82,8 @@ So I wrote the payload as follows.
 ```
 
 ### Return Oriented Programming
-Now we need to spawn shell using the payload. While there weren't many `pop` gadgets, checking IDA revealed usable gadgets were removed and the problem intended solving using these four gadgets.
+Now we need to spawn shell using the payload.
+While there weren't many `pop` gadgets, IDA revealed most of gadgets removed and the challenge intended solution using these four gadgets.
 
 ```
 # mov rdi, rsi gadget
@@ -117,11 +116,11 @@ Now we need to spawn shell using the payload. While there weren't many `pop` gad
 .text:000000000040118E                 retn
 ```
 
-Unusually, there was a `read` gadget. Similar to `fgets`, the value of `rbp` minus `8` is passed to `rsi` through `rax`.
+Unusually, there was a `read` gadget.
+Similar to `fgets`, the value of `rbp` minus `8` is passed to `rsi` through `rax`.
+Since `rbp` can be manipulated using the `pop rbp` gadget, we just need to set the `rbp` value by adding `8` to the input address, considering the `lea rax, [rbp-8h]` instruction.
 
-Since `rbp` can be freely set using the `pop rbp` gadget, we just need to set the `rbp` value by adding `8` to the input address, accounting for the `lea rax, [rbp-8h]` instruction.
-
-To avoid changing the set `rsp` value, I configured the payload to jump directly to the middle address `0x401172` of the `read` gadget.
+To avoid changing the manipulated `rsp` value, I configured the payload to jump directly to the middle address `0x401172` of the `read` gadget.
 
 ``` python
     # read(0, alarm.got, 8) ; alarm.got = 0x404008
@@ -130,11 +129,10 @@ To avoid changing the set `rsp` value, I configured the payload to jump directly
     payload += p64(0x401172)                # middle of read
 ```
 
-I decided to write a value to `alarm`'s GOT because there are no output functions to leak libc, so I needed to find the function closest to `execve` for partial overwrite.
-
+I decided to write a value to `alarm`'s GOT because there are no printing functions to leak libc, so I needed to find the function closest to `execve` for partial overwrite.
 "Closest" means the smallest offset difference, and overwriting the GOT of a close function maximizes exploitation probability under ASLR.
 
-After this, we just need to write `"/bin/sh\x00"` to memory and use gadgets to pass it as `execve` function arguments.
+After this, we just need to write `"/bin/sh\x00"` to any memory and use gadgets to pass it as `execve` function arguments.
 
 ``` python
     # read(0, 0x404900, 8) ; &0x404900 = "/bin/sh\x00"
@@ -161,6 +159,8 @@ After this, we just need to write `"/bin/sh\x00"` to memory and use gadgets to p
     s.send(payload)
     sleep(0.5)
 ```
+
+Come to think of it, I could just input `sh;` to the last 3 bytes at the point of `fgets` and pass the address.
 
 
 ## 0x03. Payload
