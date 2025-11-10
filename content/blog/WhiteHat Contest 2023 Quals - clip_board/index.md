@@ -4,7 +4,7 @@ date = "2024-08-30"
 description = "WhiteHat Contest 2023 Quals pwnable challenge"
 
 [taxonomies]
-tags = ["ctf", "pwnable", "fsop", "tcache unlinking", "safe linking"]
+tags = ["ctf", "pwnable", "improper check", "fsop", "heap manipulation", "tcache unlinking", "safe linking"]
 +++
 
 ## 0x00. Introduction
@@ -49,11 +49,10 @@ int __fastcall main(int argc, const char **argv, const char **envp)
 }
 ```
 
-Three functionalities `AddClipboard()`, `DelClipboard()`, and `ViewClipboard()` are implemented based on heap.
-
+Three functions `AddClipboard()`, `DelClipboard()`, and `ViewClipboard()` are implemented based on heap.
 Conveniently, it prints one heap address, so we don't need to leak heap separately.
 
-### Global variables
+### Global Variables
 ``` c
 char *chunk_list[10];
 char check_chunk_list[10];      // size = 16
@@ -66,7 +65,7 @@ For example, when executing `AddClipboard()` and inputting `i` for `index`, thes
 - `check_chunk_list[i]` : `1`
 - `chunk_size_list[i]` : `size`
 
-Here, `check_chunk_list` is allocated `16` bytes, perhaps due to alignment.
+Note that `check_chunk_list` is allocated `16` bytes, perhaps due to alignment.
 
 
 ## 0x01. Vulnerability
@@ -96,11 +95,11 @@ int ViewClipboard()
 
 `AddClipboard()`, `DelClipboard()`, and `ViewClipboard()` all have an OOB vulnerability since they don't verify when the `index` value is negative.
 
-However, to get the desired behavior, `check` must have a non-zero value, so we need to carefully check the values in the area above `check_chunk_list`.
+However, to get the desired behavior, `check` must have a non-zero value, so we need to be aware the values in the area above `check_chunk_list`.
 
 
 ## 0x02. Exploit
-### Libc leak
+### Libc Leak
 ``` bash
 gef➤  x/20gx 0x555555558000
 0x555555558000: 0x0000000000000000      0x0000555555558008
@@ -115,13 +114,16 @@ gef➤  x/20gx 0x555555558000
 0x555555558090 <check_chunk_list>:      0x0000000000000000      0x0000000000000000
 ```
 
-Looking at the area above `chunk_list` to exploit the vulnerability with negative `index`, we find `stdout` and `stdin`.
+Looking at the area above `chunk_list` to exploit the vulnerability with negative `index`, we can find `stdout` and `stdin`.
 
-A bss region address is written to the `0x555555558008` area with the variable name `__dso_handle`. Checking it revealed it's only referenced once in `__do_global_dtors_aux` of `fini_array`. It's not particularly meaningful for this problem, but good to remember for future use.
+A bss region address is written to the `0x555555558008` address with the variable name `__dso_handle`.
+Checking it revealed it's only referenced once in `__do_global_dtors_aux` of `fini_array`.
+It's not particularly meaningful for this challenge, but good to remember for future use.
 
-`stdin` can be accessed as `chunk_list[-2]` and `stdout` as `chunk_list[-4]`. To read values with `ViewClipboard`, we need to put a non-zero value in `check_chunk_list[-2]` or `check_chunk_list[-4]`.
-
-This means we need to put a value at `0x55555555808e` or `0x55555555808c`. Even if we input `9` for `index` to store the value returned by `malloc()` at `0x555555558088`, an address value would be written, putting `0` at `0x55555555808e`.
+`stdin` can be accessed as `chunk_list[-2]` and `stdout` as `chunk_list[-4]`.
+To read values with `ViewClipboard`, a non-zero value is needed in `check_chunk_list[-2]` or `check_chunk_list[-4]`.
+This means we need to put a value at `0x55555555808e` or `0x55555555808c`.
+But even if we input `9` for `index` to store the value returned by `malloc()` at `0x555555558088`, `0` is written at `0x55555555808e`, since a pointer is written.
 
 Therefore, only `stdout` can be viewed, and I obtained the libc address with the following payload.
 
@@ -154,10 +156,9 @@ Start              End                Offset             Perm Path
 Since Full RELRO is applied, the GOT area is not writable, so between `0x555555558000` and `chunk_list` there's only `stdout` and `stdin`.
 
 Since we need to control RIP by modifying `stdout` or `stdin`, I searched for resources and found the FSOP technique.
-
 For the FSOP technique, I used the content summarized in [this post](../exploiting-fsop-in-glibc-2-35/).
 
-In the problem, we can freely allocate memory using the `AddClipboard()` function, and since the heap address was provided initially, I calculated the offset and wrote the payload as follows.
+In the challenge, we can freely allocate memory using the `AddClipboard()` function, and since the heap address was provided initially, I calculated the offset and wrote the payload as follows.
 
 ``` python
     # allocate wide_vtable
@@ -191,7 +192,6 @@ In the problem, we can freely allocate memory using the `AddClipboard()` functio
 ```
 
 Uh... I explained enthusiastically, but there's actually one major problem.
-
 When overwriting `stdout` at `chunk_list[-4]` using the OOB vulnerability, memory looks like this image.
 
 ![overwrite stdout](https://github.com/user-attachments/assets/516ba80e-e929-4134-8286-90478be22a81)
@@ -204,8 +204,8 @@ Therefore, we need to overwrite the `_IO_list_all` pointer in the libc region...
 
 It's unfortunate that I wouldn't have had to do this if I'd found another FSOP scenario that directly accesses values stored in `stdout`...
 
-### tcache unlink
-Looking at the code with the feeling of seeing a completely new challenge, we can see `DelClipboard()` performs this operation.
+### Tcache Unlink
+Looking at the code with the feeling of seeing a completely new challenge, we can see `DelClipboard()` has this operation.
 
 ``` c
 int DelClipboard()
@@ -224,11 +224,12 @@ int DelClipboard()
 }
 ```
 
-It resets the value of `check_chunk_list[index]` set to `1` in `AddClipboard()` back to `0`.
+It resets the value of `check_chunk_list[index]` which was set to `1` in `AddClipboard()` back to `0`.
 
-Above `check_chunk_list` will be addresses of heap regions allocated by `malloc()`. If the order of `malloc()` and `free()` is the same, the offsets will be identical, so we can predict without leaking the allocated address.
+Above `check_chunk_list` will be addresses of heap regions allocated by `malloc()`.
+If the order of `malloc()` and `free()` is the same, the offsets will be identical, so we can predict without leaking the allocated address.
 
-Therefore, after aligning heap so `malloc` returns a `0xXXXXXXXXXX10` address, creating a fake chunk header at `0xXXXXXXXXXX00` address, then changing the last byte `0x10` to `0x00` allows freeing the fake chunk.
+Therefore, after aligning heap so that `malloc` returns a `0xXXXXXXXXXX10` address, creating a fake chunk header at `0xXXXXXXXXXX00` address, then changing the last byte `0x10` to `0x00` allows freeing the fake chunk.
 
 ``` python
     # align last byte
@@ -265,7 +266,7 @@ Tcachebins[idx=14, size=0x100, count=1] ←  Chunk(addr=0x555555559400, size=0x1
 
 This makes the `0x555555559400` area overlap with `0x555555559440` and `0x555555559470`, so requesting a `0xf0`-sized chunk allows overwriting `0x555555559440`'s `fd`.
 
-### Safe linking bypass
+### Safe Linking Bypass
 However, checking `0x555555559440` and `0x555555559470`'s `fd` shows it doesn't simply store the next chunk's address, due to tcache's safe linking.
 
 ``` bash
@@ -293,11 +294,12 @@ In the memory above, `0x62cde40f9bbc5877` is the `key`, which prevents double fr
 
 1. When doing `free(ptr)`,
 2. Verify if `ptr->key` has proper `key` value
-  - If not, `abort`
+   - If not, `abort`
 3. If proper `key` value exists, traverse tcache bin matching `ptr`'s `size`
-  - If `ptr` is in bin, `abort`
+   - If `ptr` is in bin, `abort`
 
-The problem is `next`. Depending on glibc version (2.35 in this case), pointer masking or encryption is applied, performing this operation before storing:
+The problem is `next`.
+Depending on glibc version (2.35 in this case), pointer masking or encryption is applied, performing the below operation before storing.
 
 ``` c
 // Encryption
@@ -307,10 +309,9 @@ entry->next = (tcache_entry *) ((uintptr_t) next ^ (uintptr_t) tcache);
 tcache_entry *next = (tcache_entry *) ((uintptr_t) e->next ^ (uintptr_t) tcache);
 ```
 
-The `tcache` value here is supposedly the address of `tcache_perthread_struct`... but it seemed different from actual memory, so I searched elixir for 2.35 glibc source code but something doesn't match - needs verification.
+The `tcache` value here is supposedly the address of `tcache_perthread_struct`, but it seemed different from actual memory, so I searched elixir for 2.35 glibc source code but something doesn't match - needs verification.
 
 Anyway, the actual `tcache` value used in xor operation is `0x555555559` (heap base address right shifted 12 bits), visible in the `0x555555559470` chunk where `next` should be null.
-
 Therefore, writing the result of xoring `0x555555559` with `_IO_list_all`'s address `0x7ffff7fa5680` to `0x555555559440` chunk's `next` position configures tcache bin as follows.
 
 ``` bash
@@ -319,7 +320,8 @@ Tcachebins[idx=1, size=0x30, count=2] ←  Chunk(addr=0x555555559440, size=0x30,
                                       ←  Chunk(addr=0x7ffff7fa5680, size=0x0, flags=PREV_INUSE | IS_MMAPPED | NON_MAIN_ARENA)  ←  [Corrupted chunk at 0x7ffff7fa5680]
 ```
 
-The `0` located 8 bytes before `_IO_list_all`'s address `0x7ffff7fa5680` is interpreted as `size`, outputting corrupted chunk. Fortunately, `malloc()` doesn't verify `size`, successfully returning `0x7ffff7fa5680`.
+The `0` located 8 bytes before `_IO_list_all`'s address `0x7ffff7fa5680` is interpreted as `size`, resulting corrupted chunk.
+Fortunately, `malloc()` doesn't verify `size`, successfully returning `0x7ffff7fa5680`.
 
 ``` python
     # reallocate fake 0x100 chunk and overwrite fd of XXXXXXXXX440

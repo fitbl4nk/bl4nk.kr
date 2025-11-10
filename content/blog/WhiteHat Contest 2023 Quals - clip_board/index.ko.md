@@ -4,7 +4,7 @@ date = "2024-08-30"
 description = "WhiteHat Contest 2023 Quals pwnable challenge"
 
 [taxonomies]
-tags = ["ctf", "pwnable", "fsop", "tcache unlinking", "safe linking"]
+tags = ["ctf", "pwnable", "improper check", "fsop", "heap manipulation", "tcache unlinking", "safe linking"]
 +++
 
 ## 0x00. Introduction
@@ -50,10 +50,9 @@ int __fastcall main(int argc, const char **argv, const char **envp)
 ```
 
 `AddClipboard()`, `DelClipboard()`, `ViewClipboard()` 세 가지 기능이 heap을 기반으로 구현되어있다.
-
 친절하게도 heap 주소를 하나 출력해주어 heap leak을 따로 해주지 않아도 된다.
 
-### Global variables
+### Global Variables
 ``` c
 char *chunk_list[10];
 char check_chunk_list[10];      // size = 16
@@ -100,7 +99,7 @@ int ViewClipboard()
 
 
 ## 0x02. Exploit
-### Libc leak
+### Libc Leak
 ``` bash
 gef➤  x/20gx 0x555555558000
 0x555555558000: 0x0000000000000000      0x0000555555558008
@@ -117,11 +116,11 @@ gef➤  x/20gx 0x555555558000
 
 `index`를 음수로 입력해 취약점을 활용하기 위해서 `chunk_list` 위 영역을 살펴보면, `stdout`과 `stdin`이 있다.
 
-`0x555555558008` 영역에 `__dso_handle`라는 변수명으로 bss 영역의 주소가 쓰여있어 확인해보니 `fini_array`의 `__do_global_dtors_aux`에서 한번 참조하는 것을 제외하고는 참조되지 않는다. 이 문제에서는 딱히 의미가 없지만 기억해뒀다가 나중에 써먹으면 좋을 것 같다.
+`0x555555558008` 영역에 `__dso_handle`라는 변수명으로 bss 영역의 주소가 쓰여있어 확인해보니 `fini_array`의 `__do_global_dtors_aux`에서 한번 참조하는 것을 제외하고는 참조되지 않는다.
+이 문제에서는 딱히 의미가 없지만 기억해뒀다가 나중에 써먹으면 좋을 것 같다.
 
-`stdin`은 `chunk_list[-2]`, `stdout`은 `chunk_list[-4]`로 접근이 가능한데, `ViewClipboard`로 값을 읽어오기 위해서는 `check_chunk_list[-2]`나 `check_chunk_list[-4]`에 `0`이 아닌 값을 넣을 수 있어야 한다.
-
-그렇다면 `0x55555555808e` 혹은 `0x55555555808c`에 값을 넣어야 한다는 소린데, `index`를 `9`로 입력해서 `0x555555558088`에 `malloc()`이 반환한 값을 저장한다고 해도 주소 값이 쓰일테니 `0x55555555808e`에는 `0`이 들어간다.
+`stdin`은 `chunk_list[-2]`, `stdout`은 `chunk_list[-4]`로 접근이 가능한데, `ViewClipboard`로 값을 읽어오기 위해서는 `check_chunk_list[-2]`나 `check_chunk_list[-4]`에 `0`이 아닌 값이 저장되어 있어야 한다.
+그렇다면 `0x55555555808e` 혹은 `0x55555555808c`에 값을 저장해야 한다는 소린데, `index`를 `9`로 입력해서 `0x555555558088`에 `malloc()`이 반환한 값을 저장한다고 해도 주소 값이라 윗 부분은 쓰이지 않을테니 `0x55555555808e`에는 `0`이 들어간다.
 
 따라서 `stdout`만 `view`가 가능하고, 다음과 같은 payload로 libc 주소를 얻었다.
 
@@ -151,10 +150,9 @@ Start              End                Offset             Perm Path
 0x0000555555558000 0x0000555555559000 0x0000000000003000 rw- /home/user/clip_board
 ```
 
-Full RELRO가 적용되어있기 때문에 GOT영역은 `write`가 불가능하므로 `0x555555558000`와 `chunk_list`의 사이에는 `stdout`, `stdin`밖에 없다.
+Full RELRO가 적용되어있기 때문에 GOT영역은 `write`가 불가능하고 `0x555555558000`와 `chunk_list`의 사이에는 `stdout`, `stdin`밖에 없다.
 
 `stdout`, `stdin`을 바꿔서 RIP control을 해야하니 자료를 찾아보다가 FSOP 기법을 발견했다.
-
 FSOP 기법은 [이 글](../exploiting-fsop-in-glibc-2-35/)에 정리한 내용을 사용했다.
 
 문제에서는 `AddClipboard()` 기능을 이용하여 메모리를 마음대로 할당받을 수 있고, 처음에 heap 주소를 주었으니 offset을 계산하여 다음과 같이 payload를 작성했다.
@@ -191,7 +189,6 @@ FSOP 기법은 [이 글](../exploiting-fsop-in-glibc-2-35/)에 정리한 내용�
 ```
 
 어... 신나게 설명했는데 사실 가장 큰 문제가 하나 있다.
-
 OOB 취약점을 이용하여 `chunk_list[-4]`에 위치한 `stdout`을 overwrite하면 메모리는 다음 이미지와 같다.
 
 ![overwrite stdout](https://github.com/user-attachments/assets/516ba80e-e929-4134-8286-90478be22a81)
@@ -204,7 +201,7 @@ OOB 취약점을 이용하여 `chunk_list[-4]`에 위치한 `stdout`을 overwrit
 
 `stdout`에 저장된 값을 직접 접근하는 다른 FSOP 시나리오를 찾았다면 이런 짓은 하지 않았어도 됐는데 아쉬울 따름이다...
 
-### tcache unlink
+### Tcache Unlink
 아예 새로운 문제를 보는 기분으로 코드를 보다보면 `DelClipboard()`에서 다음 동작을 수행하는 것을 확인할 수 있다.
 
 ``` c
@@ -226,7 +223,8 @@ int DelClipboard()
 
 `AddClipboard()`에서 `1`로 설정된 `check_chunk_list[index]`의 값을 `0`으로 돌려준다.
 
-`check_chunk_list` 위에는 `malloc()`으로 할당받은 heap 영역의 주소들이 쓰여있을 것이고 `malloc()`, `free()`를 하는 순서가 같으면 offset도 동일할 것이므로 할당받은 주소를 leak하지 않더라도 예측할 수 있다.
+`check_chunk_list` 위에는 `malloc()`으로 할당받은 heap 영역의 주소들이 쓰여있다.
+만약 `malloc()`, `free()`를 하는 순서가 같으면 offset도 동일할 것이므로, 할당받은 주소를 leak하지 않더라도 예측할 수 있다.
 
 따라서 `malloc`이 `0xXXXXXXXXXX10` 주소를 반환하게끔 heap을 정렬시켜두고, `0xXXXXXXXXXX00` 주소에 fake chunk header를 만들어준 다음, 주소의 마지막 바이트인 `0x10`을 `0x00`으로 만들어주면 fake chunk를 `free()`시킬 수 있다.
 
@@ -265,7 +263,7 @@ Tcachebins[idx=14, size=0x100, count=1] ←  Chunk(addr=0x555555559400, size=0x1
 
 이렇게 `0x555555559400` 영역이 `0x555555559440`, `0x555555559470` 영역과 겹치게 되기 때문에 `0xf0`짜리 chunk를 요청하면 `0x555555559440`의 `fd`를 overwrite할 수 있다.
 
-### Safe linking bypass
+### Safe Linking Bypass
 그런데 이 때 `0x555555559440`과 `0x555555559470`의 `fd`를 확인해보면 단순히 다음 chunk의 주소를 저장하지 않는데, 이는 tcache의 safe linking 때문이다.
 
 ``` bash
@@ -293,9 +291,9 @@ struct tcache_entry {
 
 1. `free(ptr)`을 했을 때,
 2. `ptr->key`에 제대로 된 `key`값이 있는지 검증
-  - 없다면 `abort`
+   - 없다면 `abort`
 3. 제대로 된 `key` 값이 있다면, `ptr`의 `size`에 맞는 tcache bin을 순회
-  - `ptr`이 bin에 있다면 `abort`
+   - `ptr`이 bin에 있다면 `abort`
 
 문제는 `next`인데, glibc 버전에 따라 다르겠지만 2.35의 경우 포인터 마스킹 또는 포인터 암호화 기법이 적용되어서 다음 연산을 하고 저장한다.
 
@@ -310,7 +308,6 @@ tcache_entry *next = (tcache_entry *) ((uintptr_t) e->next ^ (uintptr_t) tcache)
 여기에서 `tcache` 값은 `tcache_perthread_struct`의 주소라고 하는데... 실제 메모리와 다른 것 같아서 2.35 glibc 소스코드를 elixir에서 찾아보았는데 뭔가 안맞는 것 같아 확인이 필요하다.
 
 아무튼 실제 xor 연산이 되는 `tcache` 값은 heap base 주소를 12bit right shift한 `0x555555559`으로, `next`가 null이어야 하는 `0x555555559470` chunk를 보면 알 수 있다.
-
 따라서 `_IO_list_all`의 주소인 `0x7ffff7fa5680`에 `0x555555559`를 xor한 결과를 `0x555555559440` chunk의 `next` 위치에 쓰면 다음과 같이 tcache bin이 구성된다.
 
 ``` bash
