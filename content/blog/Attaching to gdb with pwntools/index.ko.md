@@ -13,7 +13,21 @@ pwnable 문제를 풀 때 스크립트 작성을 위해 `pwntools`를 주로 사
 
 
 ## 0x01. Debugging with pwntools
-### Attach process
+### Spawning Process
+``` python
+BINARY = ""
+LIBRARY = ""
+
+# for remote
+s = remote(server, port)
+# for local
+s = process(BINARY, env={"LD_PRELOAD" : LIBRARY})
+```
+
+리모트 환경은 `remote`, 로컬 환경은 `process`를 통해서 프로세스를 실행하고 연결할 수 있다.
+특히 `remote`는 실제 서버에 연결할 때 뿐만 아니라 로컬에 설정한 docker에 연결할 때도 사용된다.
+
+### Open Debugger
 `pwntools`에서 제공하는 `gdb` 모듈의 `attach` 함수를 이용해서 실행중인 프로세스에 디버거를 연결할 수 있다.
 
 ``` python
@@ -33,7 +47,19 @@ gdb.attach(s, gs)
 
 이 때 두번째 인자에 gdb script를 넣을 수 있어서 `breakpoint`를 잡고 `continue`하는 과정도 자동화할 수 있다.
 
-### Set terminal
+한편 docker 내부의 프로세스에도 `pid`를 통해 디버거를 연결할 수 있는데, 다음 스크립트를 사용하면 편리하다.
+
+``` python
+CONTAINER = ""
+
+pid = os.popen(f"sudo docker top {CONTAINER} -eo pid,comm | grep {BINARY} | awk '{{print $1}}'").read()
+gdb.attach(int(pid), gs, exe=BINARY)
+```
+
+이를 통해 로컬 환경과 리모트 환경의 격차를 최소화할 수 있어서 굉장히 유용하게 사용할 수 있다.
+하지만 가끔 컨테이너 내부 권한과 외부 권한이 맞지 않아 에러가 발생할 수 있으니 잘 신경써줘야 한다([Permission Error](#Permission-error) 참고).
+
+### Set Terminal
 연결한 디버거를 어디에 표시할지 설정이 필요하다.
 간단하게 `context` 모듈의 `terminal` 변수를 통해서 설정해줄 수 있는데, 마음에 드는 모양을 선택하면 된다.
 
@@ -44,7 +70,7 @@ context.terminal = ['tmux', 'splitw', '-hf']    # 전체 창을 세로로 분리
 context.terminal = ['tmux', 'splitw', '-vf']    # 전체 창을 가로로 분리
 ```
 
-`tmux`를 쓰는게 꽤 깔끔해서 채용중인데, 다만 주의할 것이 꼭 `tmux` 세션을 열고 스크립트를 실행해야 한다.([Troubleshooting](#0x03-troubleshooting) 참고)
+`tmux`를 쓰는게 꽤 깔끔해서 채용중인데, 다만 주의할 것이 꼭 `tmux` 세션을 열고 스크립트를 실행해야 한다([Tmux Session Error](#tmux-session-error) 참고).
 
 
 ## 0x02. Conclusion
@@ -119,7 +145,47 @@ if __name__=='__main__':
 
 
 ## 0x03. Troubleshooting
-### Tmux session error
+### Permission Error
+``` bash
+GEF for linux ready, type `gef' to start, `gef config' to configure
+93 commands loaded and 5 functions added for GDB 12.1 in 0.00ms using Python engine 3.10
+Reading symbols from challenge...
+(No debugging symbols found in challenge)
+Attaching to program: /home/user/challenge, process 165353
+Could not attach to process.  If your uid matches the uid of the target
+process, check the setting of /proc/sys/kernel/yama/ptrace_scope, or try
+again as the root user.  For more details, see /etc/sysctl.d/10-ptrace.conf
+ptrace: Operation not permitted.
+/home/user/challenge/165353: No such file or directory.
+/tmp/pwnlib-gdbscript-kd8sfrgq.gdb:4: Error in sourced command file:
+The program is not being run.
+gef➤
+```
+
+Docker 내부의 프로세스에 붙어서 디버깅을 할 때 위와 같은 에러가 발생할 때가 있다.
+자세히 보면 권한 문제인데, 프로세스 목록을 출력해보면 다음과 같다.
+
+``` bash
+➜  ~ ps -ef | grep challenge
+root      165261  165241  0 16:01 ?        00:00:00 /bin/sh -c socat TCP-LISTEN:8794,reuseaddr,fork EXEC:/home/ctf/challenge
+root      165284  165261  0 16:01 ?        00:00:00 socat TCP-LISTEN:8794,reuseaddr,fork EXEC:/home/ctf/challenge
+root      165521  165284  0 16:05 ?        00:00:00 socat TCP-LISTEN:8794,reuseaddr,fork EXEC:/home/ctf/challenge
+root      165524  165521  0 16:05 ?        00:00:00 /home/ctf/challenge
+user      165545   66182  0 16:05 pts/9    00:00:00 /usr/bin/gdb -q challenge 165524 -x /tmp/pwnlib-gdbscript-webj6wb7.gdb
+```
+
+이렇게 python 스크립트로 열린 디버거는 `user` 권한으로 실행되는데, 타겟 프로세스인 `challenge`는 `root` 권한으로 실행되었다.
+이 경우 디버거 연결에 실패하며, `Dockerfile`에서 다음 내용을 추가해줘야 한다.
+
+``` docker
+RUN /usr/sbin/useradd -u 1000 ctf
+USER ctf
+```
+
+이 때 주의할 것은 `uid`가 python 스크립트를 실행시키는 `user`와 같아야 한다는 것이다.
+예를 들어 Ubuntu 24.04의 경우 기본적으로 `ubuntu`라는 계정이 `uid` 1000을 선점하고 있어 새로운 계정의 `uid` 값이 1001이 되어 에러를 유발할 수 있다.
+
+### Tmux Session Error
 처음에 스크립트를 실행했을 때 발생한 오류이다.
 
 ``` bash
@@ -145,7 +211,7 @@ ValueError: invalid literal for int() with base 10: b''
 위 스크립트를 실행하면 `tmux` 세션에 터미널을 생성해서 스크립트를 실행하게 되는데 존재하는 `tmux` 세션이 없어서 발생하는 에러였다.
 나는 알아서 세션 생성해서 연결할 줄 알았지...
 
-```
+``` bash
 ➜  tmux
 ➜  python3 exploit.py
 ```

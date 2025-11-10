@@ -13,7 +13,21 @@ Usually, you'd spawn a process and attach `gdb` from another terminal - but with
 
 
 ## 0x01. Debugging with pwntools
-### Attach process
+### Spawning Process
+``` python
+BINARY = ""
+LIBRARY = ""
+
+# for remote
+s = remote(server, port)
+# for local
+s = process(BINARY, env={"LD_PRELOAD" : LIBRARY})
+```
+
+Use `remote` for remote, and `process` for local to run and connect to processes.
+Especially, `remote` is used not only when connecting to actual servers but also when connecting to locally running docker.
+
+### Open Debugger
 The `attach` function from pwntools' `gdb` module lets you attach a debugger to a running process:
 
 ``` python
@@ -31,9 +45,21 @@ continue
 gdb.attach(s, gs)
 ```
 
-The second argument takes a gdb script, so you can automate setting breakpoints and continuing execution.
+The second argument takes a gdb script, so you can automate setting breakpoints and continuing code flow.
 
-### Set terminal
+Also, you can attach debugger to a process inside of docker with `pid`, using the following script:
+
+``` python
+CONTAINER = ""
+
+pid = os.popen(f"sudo docker top {CONTAINER} -eo pid,comm | grep {BINARY} | awk '{{print $1}}'").read()
+gdb.attach(int(pid), gs, exe=BINARY)
+```
+
+With this script, it is possible to minimize the difference between local and remote environment.
+However, errors can occasionally occur when inside and outside of container has permissions that don't match (see [Permission Error](#permission-error)).
+
+### Set Terminal
 You need to configure where the attached debugger shows up.
 Simple enough with the `context` module's `terminal` variable - just pick your preferred layout:
 
@@ -45,7 +71,7 @@ context.terminal = ['tmux', 'splitw', '-vf']    # split entire window vertically
 ```
 
 I know it's pretty old-fashioned, but I've been using `tmux` since it's pretty clean.
-The one thing you should notice is make sure you're actually running inside a `tmux` session before executing the script (see [Troubleshooting](#0x03-troubleshooting)).
+You should also note that you're actually running inside a `tmux` session before executing the script (see [Tmux Session Error](#tmux-session-error)).
 
 
 ## 0x02. Conclusion
@@ -123,7 +149,48 @@ Otherwise it shows annoying underlines.
 
 
 ## 0x03. Troubleshooting
-### Tmux session error
+### Permission Error
+``` bash
+GEF for linux ready, type `gef' to start, `gef config' to configure
+93 commands loaded and 5 functions added for GDB 12.1 in 0.00ms using Python engine 3.10
+Reading symbols from challenge...
+(No debugging symbols found in challenge)
+Attaching to program: /home/user/challenge, process 165353
+Could not attach to process.  If your uid matches the uid of the target
+process, check the setting of /proc/sys/kernel/yama/ptrace_scope, or try
+again as the root user.  For more details, see /etc/sysctl.d/10-ptrace.conf
+ptrace: Operation not permitted.
+/home/user/challenge/165353: No such file or directory.
+/tmp/pwnlib-gdbscript-kd8sfrgq.gdb:4: Error in sourced command file:
+The program is not being run.
+gef➤
+```
+
+When debugging a process inside of docker, the error above might occurs sometimes.
+If we take a closer look at the error, it's something to do with permission.
+Printing out the current process list is as follows:
+
+``` bash
+➜  ps -ef | grep challenge
+root      165261  165241  0 16:01 ?        00:00:00 /bin/sh -c socat TCP-LISTEN:8794,reuseaddr,fork EXEC:/home/ctf/challenge
+root      165284  165261  0 16:01 ?        00:00:00 socat TCP-LISTEN:8794,reuseaddr,fork EXEC:/home/ctf/challenge
+root      165521  165284  0 16:05 ?        00:00:00 socat TCP-LISTEN:8794,reuseaddr,fork EXEC:/home/ctf/challenge
+root      165524  165521  0 16:05 ?        00:00:00 /home/ctf/challenge
+user      165545   66182  0 16:05 pts/9    00:00:00 /usr/bin/gdb -q challenge 165524 -x /tmp/pwnlib-gdbscript-webj6wb7.gdb
+```
+
+The debugger opened via python script is executed with `user` permission, whereas the target process `challenge` is executed with `root` permission.
+In this case attaching to the process fails, so the following lines should be added to `Dockerfile`.
+
+``` docker
+RUN /usr/sbin/useradd -u 1000 ctf
+USER ctf
+```
+
+You should note that the `uid` above should be identical with the `user`'s, who is running the python script.
+In the case of Ubuntu 24.04, for example, the user `ubuntu` is preempting `uid` 1000, possibly causing error because a new user will have `uid` 1001.
+
+### Tmux Session Error
 This is what greeted me when I first ran the script:
 
 ``` bash
@@ -151,7 +218,7 @@ Turns out it was something completely different.
 The script tries to create a terminal in a `tmux` session - but there was no active `tmux` session to attach to.
 I naively assumed it would just create one automatically...
 
-```
+``` bash
 ➜  tmux
 ➜  python3 exploit.py
 ```
