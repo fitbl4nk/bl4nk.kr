@@ -4,7 +4,7 @@ date = "2024-10-04"
 description = "SECCON CTF 2023 Quals pwnable challenge"
 
 [taxonomies]
-tags = ["ctf", "pwnable", "out of bound", "heap overflow", "unsorted bin"]
+tags = ["ctf", "pwnable", "improper check", "out of bound", "heap manipulation", "heap overflow", "unsorted bin"]
 +++
 
 ## 0x00. Introduction
@@ -42,7 +42,6 @@ typedef struct String {
 ```
 
 데이터를 특이한 방식으로 저장해서 처음에 적응하기 까다로웠다.
-
 어렵게 생각하지 말고 어떤 데이터를 `data_t`에 저장하는데, 데이터의 유형에 따라 다른 방식으로 저장한다고 생각하면 된다.
 
 ### Concept
@@ -97,14 +96,13 @@ static int edit(data_t *data){
 ```
 
 입력한 `idx` 값이 `arr->count`보다 큰 지 검증하는데, 두 값이 같을 경우를 검증하지 않아 OOB가 발생한다.
-
 예를 들어 `arr->count`가 `4`이면 `data[0]~data[3]`이 생성되는데, 있지도 않은 `data[4]`에 접근할 수 있어 `arr` 바로 다음 영역에 접근할 수 있다.
 
 새삼 이 간단한 취약점으로 쉘이 따인다니 놀랍다... 역시 취약점은 우선 exploitability를 막론하고 bug를 찾는다는 관점으로 봐야하는 것 같다.
 
 
 ## 0x02. Exploit
-### Heap leak
+### Heap Leak
 우선 취약점을 트리거하기 위해 다음과 같이 `Array`를 할당한다.
 
 ``` python
@@ -158,7 +156,6 @@ gef➤  x/9gx 0x0000555555559380
 ```
 
 Heap에서 연속적으로 chunk를 할당해주어 `[0, 0]`과 `[0, 1]`이 인접한 메모리 구조를 확인할 수 있다.
-
 따라서 OOB 취약점을 이용해서 존재하지 않는 `[0, 0, 4]`에 접근하게 되면 `0x555555559378`~`0x555555559380` 영역을 overwrite할 수 있게 된다.
 
 - `0x555555559378` : `[0, 1]` chunk의 header
@@ -192,7 +189,7 @@ static int edit(data_t *data){
 }
 ```
 
-이 때 `data_t->type`에 chunk size인 `0x51`이 저장되어있고 이는 `type_t`에 정의되지 않은 값이기 때문에 `show()` 함수에서 `exit()`이 호출되어버린다.
+이 때 `data_t->type`에 chunk size인 0x51이 저장되어있고 이는 `type_t`에 정의되지 않은 값이기 때문에 `show()` 함수에서 `exit()`이 호출되어버린다.
 
 ``` c
 static int show(data_t *data, unsigned level, bool recur){
@@ -220,7 +217,7 @@ static int show(data_t *data, unsigned level, bool recur){
 
 이렇게 overwrite에 성공하면 `[0, 1]->count` 부분에 새로운 `arr_t` 주소가 담기게 되고, `show()`를 이용해 값을 출력할 수 있다.
 
-### Heap overflow
+### Heap Overflow
 이제 `arr_t`로 heap leak이 가능했으니 다른 구조체인 `str_t`을 이용해 exploit을 시도하려고 했다.
 
 ``` c
@@ -295,16 +292,13 @@ fin:
 ```
 
 `scanf()`를 보면 특이한 formatter를 사용하는데, `m`은 GNU 확장 기능 중 하나로 heap 메모리를 할당하여 입력값을 저장한다.
-
 자세히 보면 `buf`에 입력을 받은 다음 주소를 `str->content`에 넣어놓고 `free()`시키는데, 어차피 `buf`가 `NULL`로 초기화되기 때문에 아무런 해제가 일어나지는 않는다.
 
-어찌됐건 `scanf()`를 할 때 `70`바이트를 입력받기 위해 메모리를 할당하고, 입력값을 저장한 뒤 나머지 메모리는 해제하는 동작을 수행한다.
-
+어찌됐건 `scanf()`를 할 때 70바이트를 입력받기 위해 메모리를 할당하고, 입력값을 저장한 뒤 나머지 메모리는 해제하는 동작을 수행한다.
 이 과정에서 heap을 사용하기 때문에 `str_t`보다 `buf`가 먼저 할당되어 인접한 영역에 `[0, 2, 0]`이 할당되지 않는다.
-
 따라서 `str_t`의 chunk size와 동일한 크기를 가지는 chunk를 해제해두고 `create()`를 호출하도록 payload를 작성해야한다.
 
-이를 위해 heap leak 과정에서 `[0, 1]->count`를 overwrite할 때 chunk size가 0x20이 되도록 `arr_t->count`가 `1`인 객체를 `[0, 0, 4]`에 생성하였다.
+이를 위해 heap leak 과정에서 `[0, 1]->count`를 overwrite할 때 chunk size가 0x20이 되도록 `arr_t->count`가 1인 객체를 `[0, 0, 4]`에 생성하였다.
 
 ``` python
     # free [0, 0, 4] (0x20 chunk) and reallocate it to [0, 2, 0] (str_t, also 0x20)
@@ -345,7 +339,7 @@ gef➤
     edit(s, 'u', [0, 3, 4], 'v', 0x1000)
 ```
 
-위 payload와 같이 `[0, 3, 4]`에 접근하여 `v_uint`로 해석되게끔 `0x1000`을 입력하면 메모리에 다음과 같이 저장된다.
+위 payload와 같이 `[0, 3, 4]`에 접근하여 `v_uint`로 해석되게끔 0x1000을 입력하면 메모리에 다음과 같이 저장된다.
 
 ``` bash
 gef➤  x/8gx 0x555555559460
@@ -355,15 +349,14 @@ gef➤  x/8gx 0x555555559460
 0x555555559490: 0x4141414141414141      0x4141414141414141
 ```
 
-`str_t` 구조체인 `[0, 2, 0]->size` 영역에 `0x1000`이 쓰여졌으니 이 객체를 이용하여 `*content`에 저장된 주소인 `0x555555559490`부터 `0x1000`바이트를 자유롭게 overwrite할 수 있다.
+`str_t` 구조체인 `[0, 2, 0]->size` 영역에 0x1000이 쓰여졌으니 이 객체를 이용하여 `*content`에 저장된 주소인 `0x555555559490`부터 `0x1000`바이트를 자유롭게 overwrite할 수 있다.
 
-### Libc leak
+### Libc Leak
 문제를 풀 때는 뚜렷한 목적성 없이 *"heap overflow가 가능하니까 일단 chunk size를 덮어서 libc leak을 해야겠다"*고 생각했는데...
 
 *"PIE도 켜져있고 Full Relro도 적용되어있으니 GOT overwrite는 포기하고 libc leak -> stack leak을 해서 return address를 덮어야겠다"*가 올바른 사고의 과정인 것 같다.
 
 아무튼 chunk를 `unsorted bin`으로 보내서 `main_arena` 주소가 담기게하는 기법을 통해 libc leak을 진행하였다.
-
 이 때 몇 가지 맞춰야 할 조건이 있었는데, 그렇지 않으면 chunk가 `unsorted bin`으로 보내지지 않는다.
 
 - chunk size가 0x420 이상일 것
@@ -410,10 +403,9 @@ gef➤
 0x555555559640: 0x000055500000c0e9      0x2da0f37bfd770960
 ```
 
-`[0, 2, 2]`의 chunk size를 `0x421`로 바꿔 `free()`시킨 후 `main_arena` 주소가 쓰이면 `[0, 2, 1]->*content`를 `[0, 2, 2]` 주소로 바꿔 출력을 하게끔 시나리오를 구성했다.
+`[0, 2, 2]`의 chunk size를 0x421로 바꿔 `free()`시킨 후 `main_arena` 주소가 쓰이면 `[0, 2, 1]->*content`를 `[0, 2, 2]` 주소로 바꿔 출력을 하게끔 시나리오를 구성했다.
 
 따라서 chunk size overwrite와 `[0, 2, 1]->*content`를 바꾸는 것을 고려해서 payload를 다음과 같이 작성했다.
-
 이 때 다른 chunk들을 건들이면 `free()`에서 에러가 발생해 구조를 그대로 유지하도록 작성하였다.
 
 ``` python
@@ -457,7 +449,7 @@ Current: <ARRAY(4)>
 index: 
 ```
 
-### Stack leak
+### Stack Leak
 Libc 주소가 있으니 `environ` 변수를 이용해서 stack leak이 가능하다.
 
 ``` python
@@ -469,12 +461,12 @@ Libc 주소가 있으니 `environ` 변수를 이용해서 stack leak이 가능�
 
 앞에서는 chunk 할당과 해제를 하기 때문에 chunk 구조를 맞춰서 payload를 작성했는데, 이제는 그럴 필요가 없으니 `[0, 2, 1]`과의 offset만 잘 맞춰주면 leak이 가능하다.
 
-### RET overwrite
+### Ret Overwrite
 마지막으로 RIP control을 위해서 `return address`를 덮기로 했다.
-
 먼저 `[0, 2, 1]->*content`가 `main()`의 `return address`가 저장된 stack 주소를 가리키도록 설정했다.
+이후 libc에 있는 가젯을 이용하여 인자를 설정하고 `system()` 함수를 호출했다.
 
-이후 libc에 있는 가젯을 이용하여 인자를 설정하고 `system()` 함수를 호출했는데, `syscall` 당시의 stack alignment가 맞지 않아 `pop rdi; pop rbp` 가젯을 사용했다.
+다만 이 때 `syscall` 당시의 stack alignment가 맞지 않아 `pop rdi; pop rbp` 가젯을 사용했다.
 
 ``` python
     # arbitrary write (ret of main)

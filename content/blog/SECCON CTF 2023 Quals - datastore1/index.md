@@ -4,7 +4,7 @@ date = "2024-10-04"
 description = "SECCON CTF 2023 Quals pwnable challenge"
 
 [taxonomies]
-tags = ["ctf", "pwnable", "out of bound", "heap overflow", "unsorted bin"]
+tags = ["ctf", "pwnable", "improper check", "out of bound", "heap manipulation", "heap overflow", "unsorted bin"]
 +++
 
 ## 0x00. Introduction
@@ -42,7 +42,6 @@ typedef struct String {
 ```
 
 The unusual way of storing data made it tricky to adapt to at first.
-
 Don't overthink it - just think of it as storing data in `data_t`, using different storage methods depending on the data type.
 
 ### Concept
@@ -97,14 +96,14 @@ static int edit(data_t *data){
 ```
 
 It verifies if the input `idx` value is greater than `arr->count`, but doesn't verify when the two values are equal, causing OOB.
-
 For example, if `arr->count` is `4`, `data[0]~data[3]` are created, but we can access non-existent `data[4]` to reach the area immediately after `arr`.
 
-It's surprising that shell can be obtained with such a simple vulnerability.Vulnerabilities should indeed be viewed from the perspective of finding bugs regardless of exploitability.
+It's surprising that shell can be spawned with such a simple vulnerability.
+Vulnerabilities should indeed be viewed from the perspective of finding bugs regardless of exploitability.
 
 
 ## 0x02. Exploit
-### Heap leak
+### Heap Leak
 First, to trigger the vulnerability, we allocate `Array` as follows.
 
 ``` python
@@ -158,13 +157,12 @@ gef➤  x/9gx 0x0000555555559380
 ```
 
 We can see that heap allocates chunks consecutively, creating an adjacent memory structure for `[0, 0]` and `[0, 1]`.
-
 Using the OOB vulnerability to access non-existent `[0, 0, 4]` allows us to overwrite the `0x555555559378`~`0x555555559380` area.
 
 - `0x555555559378` : `[0, 1]` chunk's header
 - `0x555555559380` : `[0, 1]->count`
 
-Since the `show()` function references the object's size and outputs it with `data_t->type`, if we can write some address to `count`, leak is possible.
+Since the `show()` function references the object's size and prints it with `data_t->type`, if we can write some address to `count`, leak is possible.
 
 ``` bash
 Current: <ARRAY(4)>
@@ -176,7 +174,7 @@ Current: <ARRAY(4)>
 
 When allocating a new `arr_t` to `[0, 0, 4]`, allocation occurs as follows.
 
-- `0x555555559378` : `[0, 1]` chunk의 header -> `data_t->type`
+- `0x555555559378` : `[0, 1]` chunk's header -> `data_t->type`
 - `0x555555559380` : `[0, 1]->count` -> `data_t->*p_arr`
 
 However, when accessing `[0, 0, 4]`, `edit()` calls the `show()` function to display the current data state.
@@ -192,7 +190,7 @@ static int edit(data_t *data){
 }
 ```
 
-At this point, `data_t->type` stores chunk size `0x51`, which is undefined in `type_t`, causing `show()` to call `exit()`.
+At this point, `data_t->type` stores chunk size 0x51, which is undefined in `type_t`, causing `show()` to call `exit()`.
 
 ``` c
 static int show(data_t *data, unsigned level, bool recur){
@@ -220,7 +218,7 @@ Therefore, before creating `arr_t`, we need to use `delete` in `edit()` to initi
 
 After successfully overwriting, the new `arr_t` address is stored in the `[0, 1]->count` part, and we can output the value using `show()`.
 
-### Heap overflow
+### Heap Overflow
 Now that heap leak is possible with `arr_t`, I attempted exploitation using the other structure `str_t`.
 
 ``` c
@@ -294,17 +292,16 @@ fin:
 }
 ```
 
-Looking at `scanf()`, it uses an unusual formatter. `m` is one of the GNU extension features that allocates heap memory to store input.
+Looking at `scanf()`, it uses a pretty unfamiliar formatter.
+`m` is one of the GNU extension features that allocates heap memory to store input.
+Looking closely, it receives input in `buf`, puts the address in `str->content`, then calls `free()`.
+Since `buf` is set to `NULL` anyway, no actual freeing occurs.
 
-Looking closely, it receives input in `buf`, puts the address in `str->content`, then calls `free()`. Since `buf` is initialized to `NULL` anyway, no actual freeing occurs.
-
-Regardless, when executing `scanf()`, it allocates memory to receive `70` bytes, stores the input, then frees the remaining memory.
-
+Anyway, when executing `scanf()`, it allocates memory to receive 70 bytes, stores the input, then frees the remaining memory.
 Since this process uses heap, `buf` is allocated before `str_t`, preventing `[0, 2, 0]` from being allocated in an adjacent area.
-
 Therefore, we need to write the payload to free a chunk with the same chunk size as `str_t` and call `create()`.
 
-For this, when overwriting `[0, 1]->count` during heap leak, I created an object with `arr_t->count` of `1` at `[0, 0, 4]` so the chunk size becomes 0x20.
+For this, when overwriting `[0, 1]->count` during heap leak, I created an object with `arr_t->count` of 1 at `[0, 0, 4]` so the chunk size becomes 0x20.
 
 ``` python
     # free [0, 0, 4] (0x20 chunk) and reallocate it to [0, 2, 0] (str_t, also 0x20)
@@ -345,7 +342,7 @@ Now `[0, 2, 0]` is allocated adjacent to `[0, 3]`, enabling the OOB vulnerabilit
     edit(s, 'u', [0, 3, 4], 'v', 0x1000)
 ```
 
-As in the payload above, accessing `[0, 3, 4]` and inputting `0x1000` to be interpreted as `v_uint` stores it in memory as follows.
+As in the payload above, accessing `[0, 3, 4]` and inputting 0x1000 to be interpreted as `v_uint` stores it in memory as follows.
 
 ``` bash
 gef➤  x/8gx 0x555555559460
@@ -355,22 +352,21 @@ gef➤  x/8gx 0x555555559460
 0x555555559490: 0x4141414141414141      0x4141414141414141
 ```
 
-Since `0x1000` is written to the `[0, 2, 0]->size` area of the `str_t` structure, we can freely overwrite `0x1000` bytes starting from `0x555555559490`, the address stored in `*content`, using this object.
+Since 0x1000 is written to the `[0, 2, 0]->size` area of the `str_t` structure, we can freely overwrite 0x1000 bytes starting from `0x555555559490`, the address stored in `*content`, using this object.
 
-### Libc leak
-When solving the challenge, I thought *"since heap overflow is possible, I should first overwrite chunk size to leak libc"* without clear purpose...
+### Libc Leak
+When solving the challenge, I thought *"since heap overflow is possible, I should first overwrite chunk size to leak libc"* without clear purpose, but...
 
-*"Since PIE is enabled and Full Relro is applied, I should give up on GOT overwrite and do libc leak -> stack leak to overwrite return address"* seems like the correct thought process.
+*"Since PIE and Full Relro is enabled, I should give up on GOT overwrite and leak libc -> leak stack to overwrite return address"* seems like the correct chain of thought.
 
 Anyway, I proceeded with libc leak using the technique of sending chunks to `unsorted bin` to store `main_arena` addresses.
-
 There were several conditions to meet, otherwise chunks wouldn't be sent to `unsorted bin`.
 
 - chunk size must be 0x420 or larger
 - chunk must exist in next area (`next_chunk`)
 - `next_chunk` must not be top chunk
 
-Especially contrary to the third condition, if `next_chunk` is top chunk, it just merges with top chunk and chunks aren't sent to `unsorted bin`.
+Especially if the thrid condition is not met, it just merges with top chunk and chunk is not sent to `unsorted bin`.
 
 Looking at memory from the earlier heap overflow situation to meet conditions one by one:
 
@@ -410,10 +406,9 @@ gef➤
 0x555555559640: 0x000055500000c0e9      0x2da0f37bfd770960
 ```
 
-I planned to change `[0, 2, 2]`'s chunk size to `0x421`, free it, then after `main_arena` address is written, change `[0, 2, 1]->*content` to `[0, 2, 2]` address for output.
+I planned to change `[0, 2, 2]`'s chunk size to 0x421, free it, then after `main_arena` address is written, change `[0, 2, 1]->*content` to `[0, 2, 2]` address for output.
 
 Considering chunk size overwrite and changing `[0, 2, 1]->*content`, I wrote the payload as follows.
-
 I wrote it to maintain the structure without touching other chunks, as touching them would cause errors in `free()`.
 
 ``` python
@@ -457,7 +452,7 @@ Current: <ARRAY(4)>
 index: 
 ```
 
-### Stack leak
+### Stack Leak
 With libc address, stack leak is possible using the `environ` variable.
 
 ``` python
@@ -467,14 +462,14 @@ With libc address, stack leak is possible using the `environ` variable.
     edit(s, 'u', [0, 2, 0], 'e', payload)
 ```
 
-Earlier we wrote payloads matching chunk structure for allocation and freeing, but now that's unnecessary - just match the offset with `[0, 2, 1]` for leak.
+Earlier I wrote payloads matching chunk structure for allocation and freeing, but now that's unnecessary - just match the offset with `[0, 2, 1]` for leak.
 
-### RET overwrite
+### Ret Overwrite
 Finally, I decided to overwrite the `return address` for RIP control.
-
 First, I set `[0, 2, 1]->*content` to point to the stack address storing `main()`'s `return address`.
+Then used gadgets in libc to set arguments and called `system()`.
 
-Then using gadgets in libc to set arguments and call `system()`, I used the `pop rdi; pop rbp` gadget since stack alignment didn't match during `syscall`.
+But I had to use the `pop rdi; pop rbp` gadget since stack address during `syscall` was not aligned.
 
 ``` python
     # arbitrary write (ret of main)
