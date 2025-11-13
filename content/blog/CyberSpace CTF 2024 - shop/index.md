@@ -4,7 +4,7 @@ date = "2024-10-09"
 description = "CyberSpace CTF 2024 pwnable challenge"
 
 [taxonomies]
-tags = ["ctf", "pwnable", "fastbin reverse into tcache", "unsorted bin", "fsop", "stdout"]
+tags = ["ctf", "pwnable", "uaf", "fastbin reverse into tcache", "partial overwrite", "unsorted bin", "fsop", "stdout"]
 +++
 
 ## 0x00. Introduction
@@ -27,8 +27,9 @@ tags = ["ctf", "pwnable", "fastbin reverse into tcache", "unsorted bin", "fsop",
 ```
 
 Using `buy_143A()`, we allocate heap chunks and store the allocated address and `size`.
+These are stored in globally declared `void *ptr_4060[32]` and `int size_4160[32]`.
 
-These are stored in globally declared `void *ptr_4060[32]` and `int size_4160[32]`. In `edit_1523()`, we input an `index` to modify the contents of the chunk stored in `ptr_4060[index]`.
+In `edit_1523()`, we input an `index` to modify the contents of the chunk stored in `ptr_4060[index]`.
 
 Similarly, in `refund_15F6()`, we input an `index` to free the chunk stored in `ptr_4060[index]`.
 
@@ -57,11 +58,11 @@ int refund_15F6()
 
 `refund_15F6()` verifies that `ptr_4060[index]` is not `NULL` and frees `ptr`.
 
-It initializes `size_4160[index]` to 0 afterward but doesn't initialize `ptr_4060[index]`, making double free possible.
+It sets `size_4160[index]` to 0 afterward but doesn't nullify `ptr_4060[index]`, causing UAF vulnerability.
 
 
 ## 0x02. Exploit
-### Fastbin reverse into tcache
+### Fastbin Reverse Into Tcache
 While possible in older glibc versions (<=2.26), glibc 2.31 in the current docker environment has mitigation applied to prevent double free in tcache.
 
 ``` bash
@@ -91,14 +92,14 @@ To bypass this, I used the fastbin reverse into tcache technique, referencing th
 - [Heap exploit - Fastbin Reverse into Tcache](https://velog.io/@chk_pass/Heap-exploit-Fastbin-Reverse-into-Tcache)
 - [how2heap - fastbin_reverse_into_tcache.c](https://github.com/shellphish/how2heap/blob/master/glibc_2.31/fastbin_reverse_into_tcache.c)
 
-These resources assume we can free a victim chunk and write values, but since `edit` is impossible when `size_4160[index]` is `0` in this problem, we need to additionally create a fastbin dup situation.
+These resources assume we can free a victim chunk and write values, but since `edit` is impossible when `size_4160[index]` is 0 in this challenge, we need to additionally create a fastbin dup situation.
 
 The exploitation flow is as follows.
 
-1. Free `7` fastbin-range chunks to fill tcache
-2. Create fastbin dup using double free
+1. Free `7` fastbin-length chunks to fill tcache
+2. Create fastbin dup using UAF
 3. Allocate `7` chunks to empty tcache
-4. Allocate 8th chunk to manipulate `next_chunk`
+4. Allocate `8`th chunk to manipulate `next_chunk`
 5. Request chunk allocation until manipulated `next_chunk` address is allocated
 6. Use allocated address for AAW
 
@@ -117,8 +118,7 @@ Writing the payload step by step:
     refund(s, 8)
 ```
 
-Executing `refund` `7` times fills tcache, sending subsequent chunks to fastbin.
-
+Executing `refund` 7 times fills tcache, sending subsequent chunks to fastbin.
 Using this, we create an `8 -> 9 -> 8` loop in fastbin.
 
 ``` python
@@ -131,8 +131,7 @@ Using this, we create an `8 -> 9 -> 8` loop in fastbin.
     edit(s, 8, b"\x40\x96")
 ```
 
-After emptying tcache by executing `buy` `7` times, executing `buy` once more returns the 8th chunk.
-
+After emptying tcache by executing `buy` 7 times, executing `buy` once more returns the 8th chunk.
 Since this 8th chunk stored `size` in `size_4160[8]` during `buy`, `edit` is possible.
 
 Since we haven't leaked heap yet, we can only partial overwrite lower bytes for probabilistic heap manipulation.
@@ -145,11 +144,12 @@ Tcachebins[idx=0, size=0x20, count=3] ←  Chunk(addr=0x555555559b70, size=0x20,
                                       ←  Chunk(addr=0x555555559640, size=0x0, flags=PREV_INUSE | IS_MMAPPED | NON_MAIN_ARENA)
 ```
 
-The `\x40\x96` input in `edit` partially overwrites the chunk's `next_chunk` to manipulate the tcache list.
+The `\x40\x96` passed to `edit` partially overwrites the chunk's `next_chunk` to manipulate the tcache list.
 
-Looking closely, `0x555555559640` comes at the end of the tcache list. Although its `size` is `0`, tcache doesn't verify `size` during allocation, so the manipulated `next_chunk` gets allocated.
+Looking closely, `0x555555559640` comes at the end of the tcache list.
+Although its `size` is 0, tcache doesn't verify `size` during allocation, so the manipulated `next_chunk` gets allocated.
 
-Thinking about it, carefully controlling size and position when allocating heap chunks to only overwrite one byte might enable exploitation without probability issues.
+Come to think of it, carefully controlling size and position when allocating heap chunks to only overwrite one byte might enable exploitation without probability issues.
 
 ``` python
     # allocate overwritten heap address
@@ -163,21 +163,18 @@ Thinking about it, carefully controlling size and position when allocating heap 
 
 As in the payload above, the partially overwritten address is returned during the 3rd `buy`, allowing us to modify values stored in heap.
 
-### Unsorted bin attack
-To proceed further, the binary has no output sections, making leaks impossible.
+### Unsorted Bin Attack
+To proceed further, the binary has no printing codes, making leaks impossible.
+Thinking about what we have, while we don't know addresses, AAW is possible by manipulating `next_chunk`.
 
-Thinking about what we have, while we don't know addresses, manipulating `next_chunk` enables AAW.
+While pondering, I thought that just like partially overwriting the heap address stored in `next_chunk` earlier, if a libc address is stored there, we could partial overwrite to write somewhere in libc memory.
 
-While pondering, I thought that like partially overwriting the heap address stored in `next_chunk` earlier, if a libc address is stored there, we could partial overwrite to write to the libc region.
-
-Getting a libc address into `next_chunk` is possible with unsorted bin attack, but requires careful chunk overlapping.
-
-Illustrated as follows.
+Getting a libc address into `next_chunk` can be accomplished with unsorted bin attack, but requires careful chunk overlapping.
+Illustrated as follows:
 
 ![exploit scenario](https://github.com/user-attachments/assets/aece5a2b-2051-4b43-80b1-df68fea69396)
 
-First, since we'll ultimately perform AAW using chunks in fastbin, we send sufficiently sized (`0x60`) chunks to fastbin.
-
+First, since we'll ultimately perform AAW using chunks in fastbin, send sufficiently sized (0x60) chunks to fastbin.
 To send the victim chunk to unsorted bin, we need to carefully position intermediate chunks so the offset with `next_chunk` matches `size`.
 
 Also, since `next_chunk` being top chunk merges with top chunk instead of going to unsorted bin, we need to consider this.
@@ -196,7 +193,7 @@ Also, since `next_chunk` being top chunk merges with top chunk instead of going 
 
 This sends the `index 7` chunk (`0x555555559650`) to fastbin, and allocating a `0x3a0` chunk afterward creates the form in the first diagram.
 
-Now to overwrite chunk size, we use the fastbin reverse into tcache vulnerability.
+Now to overwrite chunk size, we use the fastbin reverse into tcache technique.
 
 ``` python
     # partially overwrite next_chunk
@@ -212,11 +209,11 @@ Now to overwrite chunk size, we use the fastbin reverse into tcache vulnerabilit
     edit(s, 11, p64(0) + p64(0x421))
 ```
 
-Executing this payload creates the second diagram. We need to free the `0x555555559650` chunk, but there's no pointer pointing to `0x555555559650`.
+Executing this payload creates the second diagram.
+We need to free the `0x555555559650` chunk, but there's no pointer pointing to `0x555555559650`.
+Since it's an already freed chunk address, we can't access it without allocating a 0x60-sized chunk again.
 
-Since it's an already freed chunk address, we can't access it without allocating a `0x60`-sized chunk again.
-
-So we use the fastbin reverse into tcache vulnerability once more to get that address returned.
+So we use the fastbin reverse into tcache technique once more to get that address returned.
 
 ``` python
     # partially overwrite next_chunk
@@ -248,7 +245,6 @@ Fastbins[idx=6, size=0x80] 0x00
 ```
 
 Since the `0x555555559650` chunk remains in fastbin, `main_arena` in `next_chunk` is interpreted as the next chunk, enabling libc region allocation.
-
 However, fastbin verifies `size`, so we need to restore the chunk size overwritten to `0x421`.
 
 ``` python
@@ -256,7 +252,7 @@ However, fastbin verifies `size`, so we need to restore the chunk size overwritt
     edit(s, 11, p64(0) + p64(0x71))
 ```
 
-### Stdout attack
+### Stdout Attack
 There's a technique for libc leak when you can change stdout's `flag`. I referenced this Korean resource:
 
 - [stdout의 file structure flag를 이용한 libc leak](https://jeongzero.oopy.io/4c0f8878-4733-48aa-8ead-5f06a0e40490)
@@ -278,7 +274,7 @@ gef➤  x/6gx 0x555555558020
 0x555555558040 <stderr>:        0x00007ffff7fc05c0      0x0000000000000000
 ```
 
-`0x7ffff7fbfbe0` and `0x7ffff7fc06a0` differ by `3` bytes without ASLR, but probabilistically differ by only `2` bytes with ASLR enabled, making exploitation possible with 1/16 probability when partial overwriting.
+`0x7ffff7fbfbe0` and `0x7ffff7fc06a0` differ by 3 bytes without ASLR, but occasionally differ by only 2 bytes with ASLR enabled, making exploitation possible with 1/16 probability when partial overwriting.
 
 ``` python
     # partially overwrite main_arena -> stdout
@@ -292,14 +288,14 @@ gef➤  x/6gx 0x555555558020
 
 With 1/16 probability of allocating the libc address storing stdout's `_IO_FILE` structure, we can change the `flag` to output libc addresses.
 
-To summarize the exploit technique, when `_IO_IS_APPENDING` is added to `flag`, `_IO_new_do_write` is called as follows, so we need to manipulate `_IO_write_base` and `_IO_write_ptr`.
+To summarize the exploit technique, when `_IO_IS_APPENDING` flag is on, `_IO_new_do_write` is called as follows, so we need to manipulate `_IO_write_base` and `_IO_write_ptr`.
 
 ``` c
 // _IO_do_write (FILE *fp, const char *data, size_t to_do)
 _IO_do_write (stdout, f->_IO_write_base, f->_IO_write_ptr - f->_IO_write_base)
 ```
 
-값을 변경하기 전 `stdout`의 `_IO_FILE` 구조체의 상태는 다음과 같다.
+The status of `_IO_FILE` structure before manipulating is as follows.
 
 ``` bash
 gef➤  p *(struct _IO_FILE *) 0x7ffff7fc06a0
@@ -336,10 +332,9 @@ This output prints the libc address contained in the `_IO_FILE` structure.
 
 Since libc leak is possible through this payload, areas like `_IO_read_XXX` don't seem important for output.
 
-Using this `stdout` structure enables AAR. Since the binary reads `flag` and stores it in heap memory, having the heap address lets us obtain the `flag`.
-
+Using this `stdout` structure enables AAR.
+Since the binary reads `flag` and stores it in heap memory, leaking the heap address lets us obtain the `flag`.
 Opposite to unsorted bin attack where we put `main_arena` address in `next_chunk`, `main_arena` contains heap addresses.
-
 Since `main_arena` is a variable stored in a fixed libc region, we calculate the offset and overwrite the value.
 
 ``` python
@@ -354,8 +349,6 @@ Since `main_arena` is a variable stored in a fixed libc region, we calculate the
 
 Note that output occurs when `_IO_write_end` equals `_IO_write_ptr`.
 
-I'll remember this for future memory leaks using `stdout`.
-
 ``` python
     # print flag
     payload = p64(0xfbad2887 | io_is_appending)
@@ -366,7 +359,7 @@ I'll remember this for future memory leaks using `stdout`.
     r = edit(s, 25, payload)
 ```
 
-After obtaining the heap address, we can obtain the `flag` the same way.
+After obtaining the heap address, we can obtain the `flag` with the payload above.
 
 
 ## 0x03. Payload
