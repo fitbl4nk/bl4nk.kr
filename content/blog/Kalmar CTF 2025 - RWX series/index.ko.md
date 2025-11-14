@@ -34,7 +34,6 @@ CMD ["python3", "app.py"]
 ```
 
 `Dockerfile`을 보면 `would.c`를 빌드해서 `/` 디렉토리 밑에 `would` 바이너리를 생성한다.
-
 flask로 구동되는 웹 서버를 올리는데 이를 이용해서 flag를 획득해야 한다.
 
 ### Concept
@@ -128,6 +127,7 @@ def execute():
 ```
 
 이후 `/exec` 엔드포인트를 통해 다음 명령어를 실행해주면 된다.
+
 - `sh<~x`
 
 
@@ -148,6 +148,7 @@ def execute():
 ```
 
 Bronze와 마찬가지로 `/home/user/x`를 생성하고 다음 명령어를 실행해주면 된다.
+
 - `. ~/x`
 
 
@@ -169,23 +170,22 @@ def execute():
 
 `. ~`, `~/*`, `~;*` 등 다양하게 시도를 해봤는데 다 실패했다.
 
-나중에 writeup을 보니 pgp의 gnu 버전인 gpg(Gnu Privacy Guard)라는 도구를 이용해야 했다.
-
+나중에 writeup을 보니 PGP의 gnu 버전인 GPG(Gnu Privacy Guard)라는 도구를 이용해야 했다.
 살면서 처음 들어보는 도구인데 놀랍게도 ubuntu에 기본으로 깔려있다.
 
-Exploit 시나리오를 위해 잠시 pgp에 대한 background를 설명하자면,
+Exploit 시나리오를 위해 잠시 PGP에 대한 background를 설명하자면,
 
-- pgp 키는 여러 개의 패킷(packet)으로 구성
+- PGP 키는 여러 개의 패킷(packet)으로 구성
   - 공개 키 패킷
   - 비밀 키 패킷
   - 사용자 ID 패킷
   - 서명 패킷
   - 사진 ID 패킷
   - ...
-- `gpg.conf` 파일을 통해 gpg의 동작 방식을 제어할 수 있음
+- `gpg.conf` 파일을 통해 GPG의 동작 방식을 제어할 수 있음
   - `list-options` : `gpg --list-keys` 실행 시 옵션을 설정하는 tag
-    - `show-photos` : 키를 나열할 때 pgp 키에 첨부된 사진 표시
-  - `photo-viewer` : pgp 키에 첨부된 사진을 표시할 때 사용할 프로그램을 지정하는 tag
+    - `show-photos` : 키를 나열할 때 PGP 키에 첨부된 사진 표시
+  - `photo-viewer` : PGP 키에 첨부된 사진을 표시할 때 사용할 프로그램을 지정하는 tag
   - `list-keys` : 이 옵션이 `gpg.conf`에 있으면 `gpg` 실행 시 자동으로 키 목록을 표시
   
 설명이 gpg, pgp를 왔다갔다 하는데 서로 호환되게 구현된 것이므로 틀린 표현은 아니다.
@@ -288,22 +288,21 @@ CMD ["python3", "app.py"]
      12 ?        00:00:00 ps
 ```
 
-이런 식으로 명령어를 연속으로 실행할 경우 pid가 `3`만큼 증가하므로 다음 프로세스의 pid를 예측할 수 있다.
+이런 식으로 명령어를 연속으로 실행할 경우 pid가 3만큼 증가하므로 다음 프로세스의 pid를 예측할 수 있다.
 
 Exploit 시나리오는 다음과 같다.
 
-|write|exec|
-|:---|---:|
-|write process 생성||
-||exec process 생성|
-|write "/would you ..." to `STDIN` of `sh`||
-||execute `w\|sh`|
+|write                                    |exec               |
+|:---                                     |               ---:|
+|Create write process                     |                   |
+|                                         |Create exec process|
+|Write "/would you ..." to `STDIN` of `sh`|                   |
+|                                         |Execute `w\|sh`    |
 
 `w|sh` 명령을 실행하는 이유는 길이가 4바이트까지이고 `sh` 프로세스에 `STDIN`을 줘야하기 때문에 한 바이트짜리 명령어인 `w`를 사용하는 것이다.
-
 존재하지 않는 명령어를 `STDIN`으로 줘도 될 것 같지만 time window가 다른지 존재하는 명령어가 성공 확률이 높다고 한다.
 
-이 때 `w|sh`는 `sh`라는 또 다른 프로세스를 생성하므로 pid를 `3`이 아닌 `4`만큼 증가시켜야 한다.
+이 때 `w|sh`는 `sh`라는 또 다른 프로세스를 생성하므로 pid를 3이 아닌 4만큼 증가시켜야 한다.
 
 컨셉은 간단한데 발상이 대단한 것 같다.
 

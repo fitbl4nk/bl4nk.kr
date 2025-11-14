@@ -7,7 +7,6 @@ description = "Kalmar CTF 2025 misc challenge"
 tags = ["ctf", "misc", "linux", "gpg", "race condition"]
 +++
 
-
 ## 0x00. Introduction
 ``` docker
 FROM ubuntu:latest
@@ -35,7 +34,6 @@ CMD ["python3", "app.py"]
 ```
 
 Looking at the `Dockerfile`, it builds `would.c` and creates a `would` binary under the `/` directory.
-
 A web server running on Flask is launched, and we need to obtain the flag through it.
 
 ### Concept
@@ -129,6 +127,7 @@ Using the `/write` endpoint, I saved the following content to `/home/user/x`:
 ```
 
 Then execute this command through the `/exec` endpoint:
+
 - `sh<~x`
 
 
@@ -149,6 +148,7 @@ def execute():
 ```
 
 Like Bronze, create `/home/user/x` and execute this command:
+
 - `. ~/x`
 
 
@@ -170,11 +170,10 @@ def execute():
 
 I tried various approaches like `. ~`, `~/*`, `~;*` but all failed.
 
-Later checking the writeup, I learned it required using gpg (GNU Privacy Guard), the GNU version of PGP.
-
+Later checking the writeup, I learned it required using GPG (GNU Privacy Guard), the GNU version of PGP.
 It's a tool I'd never heard of, but surprisingly it comes pre-installed on Ubuntu.
 
-To explain the background for the exploit scenario, regarding PGP:
+To explain the background regarding PGP for the exploit scenario:
 
 - PGP keys consist of multiple packets:
   - Public key packet
@@ -183,13 +182,13 @@ To explain the background for the exploit scenario, regarding PGP:
   - Signature packet
   - Photo ID packet
   - ...
-- `gpg.conf` file controls gpg's behavior:
+- `gpg.conf` file controls GPG's behavior:
   - `list-options`: Tag for setting options when executing `gpg --list-keys`
-    - `show-photos`: Display photos attached to PGP keys when listing keys
+    - `show-photos`: Enable displaying photos attached to PGP keys when listing keys
   - `photo-viewer`: Tag specifying the program to use for displaying photos attached to PGP keys
   - `list-keys`: If this option is in `gpg.conf`, automatically displays key list when executing `gpg`
   
-The explanation switches between gpg and PGP, but they're implemented to be compatible, so it's not incorrect.
+The explanation switches between GPG and PGP, but they're implemented to be compatible, so it's not incorrect.
 
 Save the following content to `/home/user/.gnupg/gpg.conf`:
 
@@ -199,7 +198,8 @@ photo-viewer /would you be so kind to provide me with a flag > /tmp/x
 list-keys
 ```
 
-Then executing the `gpg` command displays the key list according to settings. During this process, since the binary for displaying photos is set to `/would you be so kind to provide me with a flag > /tmp/x`, the command executes when displaying photos.
+Then executing the `gpg` command displays the key list according to settings.
+During this process, since the binary for displaying photos is set to `/would you be so kind to provide me with a flag > /tmp/x`, the command executes when displaying photos.
 
 ### Payload
 ``` python
@@ -289,22 +289,21 @@ I also couldn't solve this during the competition. Checking the writeup revealed
      12 ?        00:00:00 ps
 ```
 
-When executing commands consecutively like this, the PID increases by `3`, allowing prediction of the next process's PID.
+When executing commands consecutively like this, the PID increases by 3, allowing prediction of the next process's PID.
 
 The exploit scenario:
 
-|write|exec|
-|:---|---:|
-|Create write process||
-||Create exec process|
-|Write "/would you ..." to `STDIN` of `sh`||
-||Execute `w\|sh`|
+|write                                    |exec               |
+|:---                                     |               ---:|
+|Create write process                     |                   |
+|                                         |Create exec process|
+|Write "/would you ..." to `STDIN` of `sh`|                   |
+|                                         |Execute `w\|sh`    |
 
 The reason for executing `w|sh` is that the length limit is 4 bytes and we need to give `STDIN` to the `sh` process, so we use the one-byte command `w`.
-
 While giving a non-existent command to `STDIN` might work, apparently existing commands have a higher success rate due to different time windows.
 
-Since `w|sh` creates another process called `sh`, we need to increase the PID by `4` instead of `3`.
+Since `w|sh` creates another process called `sh`, we need to increase the PID by 4 instead of 3.
 
 The concept is simple, but the approach is impressive.
 
