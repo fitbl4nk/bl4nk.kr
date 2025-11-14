@@ -4,7 +4,7 @@ date = "2024-11-23"
 description = "WhiteHat Contest 2024 pwnable challenge"
 
 [taxonomies]
-tags = ["ctf", "pwnable", "injection", "rop"]
+tags = ["ctf", "pwnable", "injection", "bof", "rop", "partial function reuse"]
 +++
 
 ## 0x00. Introduction
@@ -19,7 +19,6 @@ tags = ["ctf", "pwnable", "injection", "rop"]
 
 ### Concept
 `init()` 함수를 보면 실행 때마다 `/users/[random string]`라는 이름으로 `USER_FILE`을 생성해서 DB 파일로 사용한다.
-
 최초에는 `user_base.bin` 파일을 읽어와 그대로 저장하며 내용은 다음과 같다.
 
 - `[2|guest|guest|guest memo]`
@@ -65,7 +64,7 @@ char *update_memo()
 }
 ```
 
-`type`이 `'1'`일 경우 `update_memo()`를 호출할 수 있고, 그 안에서 BOF가 발생한다.
+`type`이 `1`일 경우 `update_memo()`를 호출할 수 있고, 그 안에서 BOF가 발생한다.
 
 
 ## 0x01. Vulnerability
@@ -94,7 +93,7 @@ void __fastcall create_user(__int64 json)
 }
 ```
 
-`create_user()`에서 `USER_FILE`에 사용자를 추가할 수 있는데 `type`이 `'2'`가 되게끔 하드코딩 되어있다.
+`create_user()`에서 `USER_FILE`에 사용자를 추가할 수 있는데 `type`이 `2`가 되게끔 하드코딩 되어있다.
 
 하지만 `memo`에 대한 검증이 없어 다음과 같이 injection이 가능하다.
 
@@ -121,6 +120,7 @@ void __fastcall create_user(__int64 json)
 처음에는 `update_memo()`의 `strncpy` 종료 시점의 레지스터를 이용하려고 했으나, `session->memo`의 끝 부분을 가리키고 있어 `/bin/sh` 등의 인자를 넣어주는 것이 불가능해보였다.
 
 `system` PLT가 괜히 있는 것은 아닐거라고 생각해서 `update_memo()`를 assembly로 살펴보았다.
+
 ``` text
 .text:0000000000402140  endbr64
 .text:0000000000402144  push    rbp

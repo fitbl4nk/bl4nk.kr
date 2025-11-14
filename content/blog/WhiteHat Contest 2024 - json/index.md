@@ -4,7 +4,7 @@ date = "2024-11-23"
 description = "WhiteHat Contest 2024 pwnable challenge"
 
 [taxonomies]
-tags = ["ctf", "pwnable", "injection", "rop"]
+tags = ["ctf", "pwnable", "injection", "bof", "rop", "partial function reuse"]
 +++
 
 ## 0x00. Introduction
@@ -18,8 +18,7 @@ tags = ["ctf", "pwnable", "injection", "rop"]
 ```
 
 ### Concept
-Looking at the `init()` function, each execution creates a `USER_FILE` named `/users/[random string]` to use as a DB file.
-
+Looking at the `init()` function, each execution creates a `USER_FILE` named `/users/[random string]` to use it as a DB file.
 Initially, it reads and saves the `user_base.bin` file as-is with the following content.
 
 - `[2|guest|guest|guest memo]`
@@ -65,7 +64,7 @@ char *update_memo()
 }
 ```
 
-When `type` is `'1'`, we can call `update_memo()`, which has a BOF vulnerability.
+When `type` is `1`, we can call `update_memo()`, which has a BOF vulnerability.
 
 
 ## 0x01. Vulnerability
@@ -94,7 +93,7 @@ void __fastcall create_user(__int64 json)
 }
 ```
 
-`create_user()` allows adding users to `USER_FILE`, but `type` is hardcoded to `'2'`.
+`create_user()` allows adding users to `USER_FILE`, but `type` is hardcoded to `2`.
 
 However, there's no validation for `memo`, making injection possible.
 
@@ -120,7 +119,7 @@ I thought I just needed to perform ROP, but unfortunately there were no gadgets 
 
 Initially, I tried using registers at the end of `strncpy` in `update_memo()`, but they pointed to the end of `session->memo`, making it impossible to insert arguments like `/bin/sh`.
 
-Thinking that the `system` PLT wasn't there for no reason, I examined `update_memo()` in assembly.
+Thinking that there must be a reason for the existance of `system` PLT, I examined `update_memo()` in assembly.
 
 ``` text
 .text:0000000000402140  endbr64
@@ -146,7 +145,8 @@ Thinking that the `system` PLT wasn't there for no reason, I examined `update_me
 
 The `rsi` argument for `read` is set through `rbp`, and since we can control `rbp` through BOF, AAW is also possible.
 
-This made me think of GOT overwrite. Since `strncpy`'s `rdi` is set to `session->memo`, I determined we could execute a shell by placing `/bin/sh` there in advance.
+This made me think of GOT overwrite.
+Since `strncpy`'s `rdi` is set to `session->memo`, I determined we could execute a shell by placing `/bin/sh` there in advance.
 
 ``` python
     read_strncpy_gadget = 0x40214C
