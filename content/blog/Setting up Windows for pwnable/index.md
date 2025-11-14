@@ -8,8 +8,8 @@ tags = ["tools", "pwnable", "setting", "wsl", "vscode"]
 +++
 
 ## 0x00. Introduction
-After purchasing a new desktop and frequently reconfiguring the environment due to driver issues, I thought it would be useful to document the setup process for reference.
-The installation environment is Windows 11 + Ubuntu(WSL), so modifications are needed for other distributions.
+After purchasing a new desktop and frequently reconfiguring the environment due to driver issues, I thought it would be nice to document the setup process for reference.
+The installation environment is Windows 11 + Ubuntu(WSL).
 
 I'll add more useful settings or tools as I discover them.
 
@@ -17,6 +17,7 @@ I'll add more useful settings or tools as I discover them.
 ## 0x01. Windows
 ### WSL
 In `Turn Windows Features On or Off`, check the following items.
+
 ![wsl](https://github.com/user-attachments/assets/8cb36560-c5a5-43e1-8a4d-cbae336fdf34)
 
 After restarting, execute these commands in the terminal.
@@ -40,6 +41,7 @@ After installing the desired theme, press `ctrl + shift + p` -> `Preferences: Co
 
 #### Keyboard Shortcuts
 Press `ctrl + shift + p` -> `Preferences: Open Keyboard Shortcuts(JSON)` and paste the following.
+This is good when switching between editor and terminal.
 
 ``` json
 [
@@ -87,7 +89,8 @@ Typing `shell:sendto` in the `win + r` run window lets you register programs tha
 
 ![shell_sendto](https://github.com/user-attachments/assets/fd79c254-35f6-48cc-85d4-5a0d8dcc8332)
 
-For example, create an IDA shortcut and place it in that folder. Then right-click a binary and select IDA from `send to` to analyze it directly.
+For example, create an IDA shortcut and place it in that folder.
+Then right-click a binary and select IDA from `send to` to analyze it directly.
 It's a bit inconvenient in Windows 11 since you need to press `Show more options` to see it, but it's quite useful.
 
 You can apparently edit the registry to revert to the Windows 10 menu, but I skipped it to keep the new computer feeling.

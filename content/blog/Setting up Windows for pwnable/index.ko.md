@@ -17,6 +17,7 @@ tags = ["tools", "pwnable", "setting", "wsl", "vscode"]
 ## 0x01. Windows
 ### WSL
 `Turn Windows Features On or Off(Windows 기능 켜기/끄기)`에서 다음 항목 체크
+
 ![wsl](https://github.com/user-attachments/assets/8cb36560-c5a5-43e1-8a4d-cbae336fdf34)
 
 재시작 후 터미널에서 다음 명령어 실행
@@ -40,6 +41,7 @@ wsl --install -d Ubuntu
 
 #### 단축키 설정
 `ctrl + shift + p` -> `Preferences: Open Keyboard Shortcuts(JSON)`에 다음 내용을 붙여넣는다.
+에디터와 터미널을 왔다갔다 하기에 편한 설정이다.
 
 ``` json
 [
@@ -55,7 +57,7 @@ wsl --install -d Ubuntu
 ]
 ```
 
-여러 창을 왔다갔다할 때에는 이게 더 편하다.
+만약 여러 창을 왔다갔다 해야한다면 이게 더 편하다.
 
 ``` json
 [
