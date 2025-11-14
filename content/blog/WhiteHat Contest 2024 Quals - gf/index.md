@@ -4,7 +4,7 @@ date = "2024-11-19"
 description = "WhiteHat Contest 2024 Quals pwnable challenge"
 
 [taxonomies]
-tags = ["ctf", "pwnable", "rop", "partial overwrite", "one gadget", "brute force"]
+tags = ["ctf", "pwnable", "bof", "rop", "partial overwrite", "one gadget", "brute force"]
 +++
 
 ## 0x00. Introduction
@@ -18,8 +18,7 @@ tags = ["ctf", "pwnable", "rop", "partial overwrite", "one gadget", "brute force
 ```
 
 A challenge where I got stuck combining gadgets here and there.
-
-I figured it out 20 minutes before the end...
+I figured out the solution 20 minutes before the end...
 
 
 ## 0x01. Vulnerability
@@ -40,7 +39,6 @@ A simple BOF vulnerability occurs where 0xbc bytes are read into the 16-byte `de
 
 ## 0x02. Exploit
 There's not a single gadget for ROP, let alone an output function.
-
 Then I got a hint from looking at memory.
 
 ``` bash
@@ -49,8 +47,7 @@ gef➤  x/4gx $rsp + 0xb0
 0x7fffffffed10: 0x0000000000000000      0x00007ffff7000000
 ```
 
-Looking around `dest + 0xb8`, the end of `read()`, there's a suspiciously partial libc address.
-
+Looking around `dest + 0xb8`, the end of `read()`, there's a suspicious libc address.
 The lower 3 bytes are `0x00`, and we can write exactly up to this point.
 
 ``` bash
@@ -59,7 +56,7 @@ gef➤  x/4gx $rsp + 0xb0
 0x7fffffffed10: 0x4141414141414141      0x00007ffff7434241
 ```
 
-So without a libc leak, we can use this part to craft an expected one-shot gadget address and hope that ASLR probabilistically loads the actual one-shot gadget at that address.
+So without a libc leak, we can use this part to craft an expected one-shot gadget address and hope that ASLR loads the actual one-shot gadget at that address.
 
 The register values when returning from `main()` are as follows.
 
@@ -83,7 +80,8 @@ $r14   : 0x0000000000403dc0  →  0x0000000000401160  →   endbr64
 $r15   : 0x00007ffff7ffd040  →  0x00007ffff7ffe2e0  →  0x0000000000000000
 ```
 
-In this state, we need to satisfy the one-shot gadget conditions. After staring at gadgets for hours, the method immediately came to mind.
+At this point, we need to satisfy the one-shot gadget conditions.
+After staring at gadgets for hours, the method immediately came to mind.
 
 ``` bash
 ➜  one_gadget libc.so.6
@@ -123,15 +121,13 @@ Among the one-shot gadgets, there was one with constraints on `rsi` and `rdx` li
 ```
 
 First, `rdx` can be controlled through the `pop_rsi_pop_rdx_push_rsi_ret` gadget, and for some reason, the `shift_rsi_ret` gadget can right shift `rsi` by 0.5 bytes.
-
-Since `rsi` stores `0x404060`, calling the `shift_rsi_ret` gadget 6 times makes `rsi` `0`.
+Since `rsi` is holding `0x404060`, calling the `shift_rsi_ret` gadget 6 times makes `rsi` `0`.
 
 Additionally, there's a constraint that `rbp-0x78` must be writable, so I set it to roughly `0x404800`, the middle of the Data section.
 
-Calculating the probability, `0x7ffff7XXXc88` must be the actual one-shot gadget address, so it's 1.5 bytes, meaning a 1/4096 probability of successful exploitation.
+Calculating the success rate, `0x7ffff7XXXc88` should be the actual one-shot gadget address, so it's 1.5 bytes, meaning a 1/4096 probability of successful exploitation.
 
 However, after the preliminaries ended, I saw someone else's exploit with a method that could succeed 100%.
-
 Since this was new to me and seems generally applicable, I'll make a separate post about it.
 
 

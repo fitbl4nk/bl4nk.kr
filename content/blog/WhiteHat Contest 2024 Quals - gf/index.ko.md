@@ -4,7 +4,7 @@ date = "2024-11-19"
 description = "WhiteHat Contest 2024 Quals pwnable challenge"
 
 [taxonomies]
-tags = ["ctf", "pwnable", "rop", "partial overwrite", "one gadget", "brute force"]
+tags = ["ctf", "pwnable", "bof", "rop", "partial overwrite", "one gadget", "brute force"]
 +++
 
 ## 0x00. Introduction
@@ -18,7 +18,6 @@ tags = ["ctf", "pwnable", "rop", "partial overwrite", "one gadget", "brute force
 ```
 
 가젯 이리 저리 조합하다가 매몰되어버린 문제.
-
 종료 20분 전에 알아버렸다...
 
 
@@ -40,7 +39,6 @@ __int64 __fastcall main(int a1, char **a2, char **a3)
 
 ## 0x02. Exploit
 출력 함수는 커녕 ROP를 하기 위한 가젯이 하나도 없다.
-
 그러다가 메모리를 보고 힌트를 얻었다.
 
 ``` bash
@@ -123,7 +121,6 @@ One shot 가젯 중 위와 같이 `rsi`, `rdx`에 조건이 걸려있는 가젯�
 ```
 
 우선 `rdx`는 `pop_rsi_pop_rdx_push_rsi_ret` 가젯을 통해 컨트롤이 가능하고 어떤 의도인지는 모르겠으나 `shift_rsi_ret` 가젯을 통해 `rsi`를 0.5바이트씩 right shift 할 수 있다.
-
 `rsi`에는 `0x404060`가 저장되어있으므로 `shift_rsi_ret` 가젯을 6번 호출하면 `rsi`를 `0`으로 만들 수 있다.
 
 추가로 `rbp-0x78`가 writable 해야하는 조건이 있는데 대충 Data 영역의 중간인 `0x404800`으로 설정해주었다.
@@ -131,7 +128,6 @@ One shot 가젯 중 위와 같이 `rsi`, `rdx`에 조건이 걸려있는 가젯�
 확률을 계산해보면 `0x7ffff7XXXc88`가 실제로 one shot 가젯의 주소여야하므로 1.5바이트, 즉 1/4096 확률로 exploit이 성공한다.
 
 그런데 예선이 끝나고 다른 분의 exploit을 보니 100% exploit에 성공할 수 있는 방법이 있었다.
-
 몰랐던 내용이기도 하고 일반적으로 사용할 수 있을 것 같아서 따로 포스팅하겠다.
 
 
