@@ -78,7 +78,6 @@ int __fastcall main(int argc, const char **argv, const char **envp)
 ```
 
 Next, it inserts the `plain` values modified by `washing_machine()` into `buf` byte by byte like a template.
-
 This `buf` is passed as an argument to `runnnn()`, which performs operations based on the values internally.
 
 In other words, the binary is a virtual machine with a predefined instruction set, and inserting values into `buf` is essentially creating shellcode.
@@ -106,7 +105,6 @@ int __fastcall main(int argc, const char **argv, const char **envp)
 ```
 
 After computation, it reads `hieroglyphs.txt` and for some reason loads hieroglyph Unicode values every 256 bytes.
-
 Then it reads `memory` values and prints the corresponding hieroglyph.
 
 To clarify, if `memory[0]` contains 123, it prints the 123rd hieroglyph.
@@ -117,7 +115,7 @@ The goal is to reverse-engineer what plaintext input produces the content writte
 ## 0x02. Exploit
 The ciphertext generation process in pseudocode:
 
-``` txt
+```
 tmp = washing_machine(plain)
 shellcode = generate_shellcode(tmp)
 runnnn(shellcode)
@@ -197,20 +195,19 @@ int __fastcall runnnn(__int64 start)
 
 `runnnn()` looks like the above, but it's too long to show everything. Here's the summary:
 
-|opcode|instruction|
-|------|-----------|
-|0     |`mov regs[op1], op2`|
-|1     |`xor regs[op1], regs[op2]`|
-|2     |`rol regs[op1], op2`|
-|3     |`sbox regs[op1]`|
+|opcode|instruction                 |
+|------|----------------------------|
+|0     |`mov regs[op1], op2`        |
+|1     |`xor regs[op1], regs[op2]`  |
+|2     |`rol regs[op1], op2`        |
+|3     |`sbox regs[op1]`            |
 |4     |`mov memory[op2], regs[op1]`|
 |8     |`mov regs[op1], memory[op2]`|
-|6     |`print regs[op1]`|
-|7     |`exit`|
-|8     |`ror regs[op1], op2`|
+|6     |`print regs[op1]`           |
+|7     |`exit`                      |
+|8     |`ror regs[op1], op2`        |
 
 Note that `sbox regs[op1]` is an instruction that fetches the value at index `regs[op1]` from `sbox`.
-
 Interpreting `buf` based on this:
 
 ``` c

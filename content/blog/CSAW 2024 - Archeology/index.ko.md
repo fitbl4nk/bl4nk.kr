@@ -78,7 +78,6 @@ int __fastcall main(int argc, const char **argv, const char **envp)
 ```
 
 그 다음 `washing_machine()`에 의해 변경된 `plain`의 값을 `buf`에 한 바이트씩 템플릿처럼 넣어준다.
-
 이 `buf`는 `runnnn()`의 인자로 들어가고, 함수 내부에서는 값에 맞는 동작을 수행한다.
 
 말하자면 바이너리는 사전 정의된 instruction set을 가지는 virtual machine이고, `buf`에 값을 넣어주는 행위는 shellcode를 만들어주는 동작이라고 보면 된다.
@@ -106,7 +105,6 @@ int __fastcall main(int argc, const char **argv, const char **envp)
 ```
 
 연산이 끝나면 `hieroglyphs.txt`를 읽어서 왜인지 모르겠지만 256바이트마다 상형문자의 유니코드 값을 로드한다.
-
 그리고 `memory`의 값을 읽어 그 값 번째의 상형문자를 출력해준다.
 
 말이 어려운데, `memory[0]`에 저장된 값이 123이라고 하면 123번째 상형문자를 출력해준다.
@@ -116,7 +114,7 @@ int __fastcall main(int argc, const char **argv, const char **envp)
 ## 0x02. Exploit
 Ciphertext가 생성되는 과정을 pseudocode로 나타내면 다음과 같다.
 
-``` txt
+```
 tmp = washing_machine(plain)
 shellcode = generate_shellcode(tmp)
 runnnn(shellcode)
@@ -196,20 +194,19 @@ int __fastcall runnnn(__int64 start)
 
 `runnnn()`은 위와 같은데, 다 보기엔 너무 많으니 정리하자면 다음과 같다.
 
-|opcode|instruction|
-|------|-----------|
-|0     |`mov regs[op1], op2`|
-|1     |`xor regs[op1], regs[op2]`|
-|2     |`rol regs[op1], op2`|
-|3     |`sbox regs[op1]`|
+|opcode|instruction                 |
+|------|----------------------------|
+|0     |`mov regs[op1], op2`        |
+|1     |`xor regs[op1], regs[op2]`  |
+|2     |`rol regs[op1], op2`        |
+|3     |`sbox regs[op1]`            |
 |4     |`mov memory[op2], regs[op1]`|
 |8     |`mov regs[op1], memory[op2]`|
-|6     |`print regs[op1]`|
-|7     |`exit`|
-|8     |`ror regs[op1], op2`|
+|6     |`print regs[op1]`           |
+|7     |`exit`                      |
+|8     |`ror regs[op1], op2`        |
 
 참고로 `sbox regs[op1]`은 `sbox`에서 `regs[op1]`에 담긴 값의 인덱스에 저장된 값을 가져오는 instruction이다.
-
 이를 바탕으로 `buf`를 해석해보면 다음과 같다.
 
 ``` c
