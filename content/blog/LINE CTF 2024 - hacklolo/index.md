@@ -4,7 +4,7 @@ date = "2024-10-18"
 description = "LINE CTF 2024 pwnable challenge"
 
 [taxonomies]
-tags = ["ctf", "pwnable", "out of bound", "jwt counterfeit", "ansi escape code"]
+tags = ["ctf", "pwnable", "improper check", "out of bound", "byte by byte attack", "jwt counterfeit", "ansi escape code", "arbitrary write"]
 +++
 
 ## 0x00. Introduction
@@ -56,16 +56,17 @@ struct user // sizeof=0x68
 };
 ```
 
-Perhaps due to the properties of `basic_string` objects in C++, strings aren't stored directly. Taking `id` as an example:
+Perhaps due to the properties of `basic_string` objects in C++, strings aren't stored simply.
+Taking `id` as an example:
 
 - `id_ptr` : address where the string is stored
 - `id_size` : length of the string
-- `id[8]` : strings up to length `8` are stored here; longer strings are allocated elsewhere
+- `id[8]` : strings up to length 8 are stored here; longer strings are allocated elsewhere
 - `id_end` : unused area, presumably chunk-related data
 
 
 ## 0x01. Vulnerability
-### Out of bound
+### Improper Check
 ``` c
 __int64 __fastcall login_790E(user_db *user_db)
 {
@@ -93,50 +94,45 @@ __int64 __fastcall login_790E(user_db *user_db)
 }
 ```
 
-While `used_db` has space to store `32` `user` entries, `login_790E()` checks a range of `33` entries.
-
+While `used_db` has space to store 32 `user` entries, `login_790E()` checks a range of 33 entries.
 As a result, the area after `user_list[32]` is recognized as another `user`, causing overlapping regions.
 
-|after `user_list`|`user`|
-|:-:|:-:|
-|user *user_list_ptr  |char *pw_ptr|
-|_QWORD count         |_QWORD pw_size|
-|_QWORD login_try     |char pw[8]|
-|_QWORD is_login      |_QWORD end_pw|
-|char *welcome_ptr    |char *id_ptr|
-|_QWORD welcome_size  |_QWORD id_size|
-|char welcome[8]      |char id[8]|
-|_QWORD canary        |_QWORD end_id|
-|user *current_user   |char *email_ptr|
-|_QWORD login_success |_QWORD email_size|
-|char *jwt_key        |char email[8]|
-|_QWORD jwt_key_size  |_QWORD end_email|
-|_QWORD jwt_key_end|  | - |
+|after `user_list`    |`user`            |
+|:-:                  |:-:               |
+|user *user_list_ptr  |char *pw_ptr      |
+|_QWORD count         |_QWORD pw_size    |
+|_QWORD login_try     |char pw[8]        |
+|_QWORD is_login      |_QWORD end_pw     |
+|char *welcome_ptr    |char *id_ptr      |
+|_QWORD welcome_size  |_QWORD id_size    |
+|char welcome[8]      |char id[8]        |
+|_QWORD canary        |_QWORD end_id     |
+|user *current_user   |char *email_ptr   |
+|_QWORD login_success |_QWORD email_size |
+|char *jwt_key        |char email[8]     |
+|_QWORD jwt_key_size  |_QWORD end_email  |
+|_QWORD jwt_key_end|  | -                |
 
 Therefore, we can log in with an account whose `id` is `"Welcome!"`, which is output when the binary runs.
 
-### JWT counterfeit
+### JWT Counterfeit
 The `coupon` generated during `join` is a JWT value created with HS256, where the signature part is generated using HMAC-SHA256.
-
 The output is 256 bits (32 bytes), which is base64URL encoded.
-
 Since base64 encodes in 3-byte units, padding (`=`) is added during encoding.
 
 ![base64.png](https://ctf-wiki.mahaloz.re/misc/encode/figure/base64_0.png)
 
 However, not only `=` but also **the last two bits of the last byte** are padded with `00`.
-
 Therefore, during decoding, **the last two bits of the last byte** don't affect the original data.
 
 In other words, any of `00`, `01`, `10`, `11` in **the last two bits of the last byte** decodes to the same value.
-
 If the decoded value is the same, incrementing the `coupon` value bit by bit still passes signature verification, making it possible to register the coupon multiple times.
 
 This is an implementation issue with JWS. I'm not sure how to exploit it further, but it seems applicable elsewhere.
 
 
 ## 0x02. Exploit
-### Memory leak
+### Memory Leak
 The memory in the area after `user_db->user_list[32]` (`Welcome!` account) looks like this.
 
 ``` bash
@@ -153,11 +149,10 @@ gef➤  x/13gx $rbp-0xa0
 
 The area representing `pw_ptr` contains `0x7fffffffdf60`, the starting address of `user_list`, and the area representing `pw_size` contains `count`, which represents the number of accounts.
 
-Currently, `count` is `1` after adding the `admin` account in `setup_admin_7D3A()` called early in `main()`.
+Currently, `count` is `1` since the `admin` account was added in `setup_admin_7D3A()` early in `main()`.
+Therefore, the `Welcome!` account's password is the 1 byte stored at `0x7fffffffdf60`.
 
-Therefore, the `Welcome!` account's password is the `1` byte stored at `0x7fffffffdf60`.
-
-Using this, we can brute force `1` byte at a time while increasing users to achieve memory leak.
+Using this, we can brute force byte-by-byte while increasing users to achieve memory leak.
 
 ``` bash
 # admin
@@ -172,8 +167,8 @@ gef➤  x/13gx $rbp-0xda0
 ```
 
 `0x7fffffffdf60` is actually `user_list[0]`, storing information for the first account `admin`.
-
-Since `count` can increase up to `32`, we can leak up to `32` bytes. However, since the last `8` bytes are other `basic_string` data, I only attempted to leak `26` bytes total.
+Since `count` can increase up to 32, we can leak up to 32 bytes.
+However, since the last 8 bytes are other `basic_string` data, I only attempted to leak 26 bytes total.
 
 Through this, we can obtain the stack address and `admin`'s `pw`.
 
@@ -197,26 +192,25 @@ def memory_leak(s):
     return hit
 ```
 
-Values representing `\t`, `\n`, etc. cannot be leaked through input/output, but this doesn't seem to be a frequent problem.
+Values representing `\t`, `\n`, etc. cannot be leaked through input/output, but this problem doesn't seem to occur frequently.
 
-### Game win
+### Win Game
 After logging in, you can choose one of: `Play Game`, `Apply Coupon`, `Coupon usage history`, `Change PW`, `Print Information`.
-
 Among these, `Change PW` and `Print Information` are menus that require defeating the boss in `Play Game` to become a `regular member`.
 
-When solving the problem, I first beat the game to move to the next step, but I should develop the habit of planning the exploit scenario first with a clear objective.
+When solving the challenge, I first beat the game to move to the next step, but I should develop the habit of planning the exploit scenario first with a clear objective.
 
 Using the OOB vulnerability, beating the game with the `Welcome!` account and calling `Change PW` allows changing the value at the location `pw_ptr` points to.
-
 Since `Welcome!->pw_ptr` points to the address storing `admin->pw_ptr`, we can change `admin->pw_ptr` to the desired address, then log in as `admin` and call `Change PW` again to write data to the previously set desired address, achieving AAW.
 
 However, it's not complete AAW because the moment we change `admin->pw_ptr`, the password needed to log in as `admin` changes.
+Therefore, we need to know the value stored at the address where we want to write data. Looking back now, it might have been okay to also change `admin->pw_size` to `1` when changing `Welcome!`'s password and do brute forcing.
 
-Therefore, we need to know the value stored at the address where we'll write data. Looking back now, it might have been okay to also change `admin->pw_size` to `1` when changing `Welcome!`'s password and do brute forcing.
+Anyway, in the game, you must avoid the `Enemy` following you, obtain `Item`s to increase `Attack` and `Defense`, then fight the `Enemy`.
+But even after collecting all items, you can't beat the `Enemy`.
 
-Anyway, in the game, you must avoid the `Enemy` following you, obtain `Item`s to increase `Attack` and `Defense`, then fight the `Enemy`. Even after collecting all items, you can't beat the `Enemy`.
-
-Using the `coupon` issued during registration doubles your `Attack`, so using the JWT counterfeit vulnerability to apply four `coupon`s total lets you beat the `Enemy`.
+Instead, using the `coupon` issued during registration doubles your `Attack`. 
+So we should utilize the JWT counterfeit vulnerability to apply four `coupon`s in total and to beat the `Enemy`.
 
 The problem is that to get the AAW mentioned above, the `Welcome!` account needs to become a `regular member`, but since the `Welcome!` account isn't a registered account, there's no issued `coupon`.
 
@@ -245,11 +239,12 @@ __int64 __fastcall join_8A4A(user_db *user_db)
 }
 ```
 
-Fortunately, looking at `join_8A4A()`, it only checks for duplicate `id` by looping through `user_list` up to `count`, so we can create a `Welcome!` account.
+Fortunately, looking at `join_8A4A()`, it only checks for duplicated `id` by looping through `user_list` up to `count`, so we can create a `Welcome!` account.
 
-Also, in `login_790E()`, if only the `id` matches and `pw` doesn't, it just moves to the next loop, so we can still log in to the 33rd `Welcome!` account after registration.
+Also, in `login_790E()`, if only the `id` matches and `pw` doesn't, it just continues to the next loop, so we can still log in to the 33rd `Welcome!` account after registration.
 
-The last question is whether the created `Welcome!` account's `coupon` can be used by the 33rd `Welcome!` account. After checking the `secret key` in the debugger and examining the content on jwt.io, they have the same `userid`, so the 33rd `Welcome!` account could use the `coupon`.
+The last question is whether the created `Welcome!` account's `coupon` can be used by the 33rd `Welcome!` account.
+After checking the `secret key` in the debugger and examining the content on jwt.io, they have the same `userid`, so the 33rd `Welcome!` account could use the `coupon`.
 
 ![jwt info](https://github.com/user-attachments/assets/16e803e0-4ba8-4732-b7b5-3ef162ca3895)
 
@@ -268,11 +263,12 @@ So I wrote the payload as follows.
         exit()
 ```
 
-Now I needed to beat the game, and while I wanted to automate it for future debugging... the input/output using ANSI escape codes took forever.
+Now I needed to beat the game, and while I wanted to automate it for future debugging, the input/output using ANSI escape codes took forever.
 
-Ultimately, I used a library called `pyte` to parse map information. For the `Item` collection algorithm, I couldn't think of anything good, so I used this simple approach:
+Ultimately, I used a library called `pyte` to parse map information.
+For the `Item` collection algorithm, I couldn't think of anything good, so I used this simple approach:
 
-1. Move up to one square away from `Enemy` to increase probability
+1. Move up to one space away from `Enemy` to increase success rate
 2. Move to bottom left - `(0, 0)`
 3. Move to top left - `(0, 16)`
 4. Move to column with `Item` - `(n, 16)`
@@ -282,12 +278,10 @@ Ultimately, I used a library called `pyte` to parse map information. For the `It
 
 For some reason, going to `(0, 16)` often creates a two-square gap with `Enemy`, so I added code to just restart the game if the `Item`'s column is too close, as that was faster.
 
-### Libc leak
+### Libc Leak
 Even with AAW through the method described above, where to control RIP remains a problem.
-
-Therefore, I determined libc leak was necessary and found `Print Information` when checking output sections.
-
-It outputs `email`, where `email_size` overlaps with the `Welcome!->login_success` area.
+Therefore, I determined libc leak was necessary and found `Print Information` while checking output sections.
+It prints `email`, where `email_size` overlaps with the `Welcome!->login_success` area.
 
 So I determined memory leak would be possible by logging in successfully to increase the `login_success` value.
 
@@ -305,10 +299,10 @@ Note that, perhaps because it's C++, many libraries are used, so you need to car
     log.info(f"libc : {hex(lib.address)}")
 ```
 
-### RIP control
-Now knowing the stack address, I wrote a payload to overwrite `main()`'s return address to execute ROP gadgets then run `execve`.
+### RIP Control
+Now that we know the stack address, I wrote a payload to overwrite `main()`'s return address to execute ROP gadgets then run `execve`.
 
-However, since `free_db_24FBA()` called just before `main()` ends frees objects storing each `user` information, we need to restore `admin->pw_ptr` that was changed for AAW.
+However, since `free_db_24FBA()` which is called at the end of `main()` frees objects storing `user` information, we need to restore `admin->pw_ptr` that was changed for AAW.
 
 ``` c
 __int64 __fastcall free_db_24FBA(__int64 user_db)
@@ -449,13 +443,13 @@ def apply_coupon_quadra(s, coupon):
     return r
 
 def parse_map(data, p=0):
-    # 터미널 크기 설정 (24행, 80열 등으로 설정)
+    # set terminal size (24 rows, 80 columns)
     screen = pyte.Screen(80, 24)
     stream = pyte.Stream(screen)
 
     stream.feed(data.decode('utf-8'))
 
-    # 화면 출력 파싱 후 'I', 'O', 'E' 위치 찾기
+    # find 'I', 'O', 'E' after parsing the screen
     positions = {'I': [], 'O': [], 'E': []}
     for row_num, row in enumerate(screen.display, start=1):
         if row_num < 4:

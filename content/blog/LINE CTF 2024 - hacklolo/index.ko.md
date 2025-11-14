@@ -4,7 +4,7 @@ date = "2024-10-18"
 description = "LINE CTF 2024 pwnable challenge"
 
 [taxonomies]
-tags = ["ctf", "pwnable", "out of bound", "jwt counterfeit", "ansi escape code"]
+tags = ["ctf", "pwnable", "improper check", "out of bound", "byte by byte attack", "jwt counterfeit", "ansi escape code", "arbitrary write"]
 +++
 
 ## 0x00. Introduction
@@ -60,12 +60,12 @@ C++에서 `basic_string` 객체가 가지는 특성 때문인지 문자열을 �
 
 - `id_ptr` : 문자열이 저장된 주소
 - `id_size` : 문자열의 길이
-- `id[8]` : 길이 `8`까지의 문자열은 여기에 저장하고 더 긴 문자열은 다른 영역을 할당받아 저장
+- `id[8]` : 길이 8까지의 문자열은 여기에 저장하고 더 긴 문자열은 다른 영역을 할당받아 저장
 - `id_end` : 쓰이지 않는 영역으로 chunk 관련 데이터로 추정
 
 
 ## 0x01. Vulnerability
-### Out of bound
+### Improper Check
 ``` c
 __int64 __fastcall login_790E(user_db *user_db)
 {
@@ -93,50 +93,45 @@ __int64 __fastcall login_790E(user_db *user_db)
 }
 ```
 
-`used_db`에는 총 `32`개의 `user`를 저장할 수 있는 공간이 있는데 `login_790E()`에서 `user`를 확인하는 범위는 `33`개이다.
-
+`used_db`에는 총 32개의 `user`를 저장할 수 있는 공간이 있는데 `login_790E()`에서 `user`를 확인하는 범위는 33개이다.
 때문에 `user_list[32]` 이후 영역이 또 하나의 `user`로 인식되며 다음과 같이 영역이 겹쳐진다.
 
-|after `user_list`|`user`|
-|:-:|:-:|
-|user *user_list_ptr  |char *pw_ptr|
-|_QWORD count         |_QWORD pw_size|
-|_QWORD login_try     |char pw[8]|
-|_QWORD is_login      |_QWORD end_pw|
-|char *welcome_ptr    |char *id_ptr|
-|_QWORD welcome_size  |_QWORD id_size|
-|char welcome[8]      |char id[8]|
-|_QWORD canary        |_QWORD end_id|
-|user *current_user   |char *email_ptr|
-|_QWORD login_success |_QWORD email_size|
-|char *jwt_key        |char email[8]|
-|_QWORD jwt_key_size  |_QWORD end_email|
-|_QWORD jwt_key_end|  | - |
+|after `user_list`    |`user`            |
+|:-:                  |:-:               |
+|user *user_list_ptr  |char *pw_ptr      |
+|_QWORD count         |_QWORD pw_size    |
+|_QWORD login_try     |char pw[8]        |
+|_QWORD is_login      |_QWORD end_pw     |
+|char *welcome_ptr    |char *id_ptr      |
+|_QWORD welcome_size  |_QWORD id_size    |
+|char welcome[8]      |char id[8]        |
+|_QWORD canary        |_QWORD end_id     |
+|user *current_user   |char *email_ptr   |
+|_QWORD login_success |_QWORD email_size |
+|char *jwt_key        |char email[8]     |
+|_QWORD jwt_key_size  |_QWORD end_email  |
+|_QWORD jwt_key_end|  | -                |
 
 따라서 바이너리 실행 시 출력되는 `"Welcome!"`이 `id`인 계정으로 로그인이 가능하다.
 
-### JWT counterfeit
+### JWT Counterfeit
 `join`시 생성되는 `coupon`은 HS256으로 생성한 JWT 값으로, siganture 부분은 HMAC-SHA256을 이용해 생성된다.
-
 이 때 출력값이 256비트(32바이트)이고 이 값을 base64URL으로 인코딩한다.
-
 인코딩 과정에서 base64가 3바이트 단위로 인코딩을 하므로 padding(`=`)이 붙게 된다.
 
 ![base64.png](https://ctf-wiki.mahaloz.re/misc/encode/figure/base64_0.png)
 
 그런데 사실 `=` 뿐만 아니라 **마지막 바이트의 마지막 두 비트**까지 `00`으로 padding이 붙는다.
-
 따라서 디코딩 과정에서 **마지막 바이트의 마지막 두 비트**는 원본 데이터에 영향을 미치지 못한다.
 
 바꿔 말하면 **마지막 바이트의 마지막 두 비트**에 `00`, `01`, `10`, `11` 넷 중 아무거나 들어가도 같은 값으로 디코딩된다.
-
 디코딩 값이 같다면 `coupon` 값에서 한 비트씩 값을 증가시켜도 서명 검증을 통과하기 때문에 여러번 `coupon`을 등록하는 것이 가능하다.
 
 JWS의 구현 상 발생하는 문제로 어떻게 써먹을 수 있을진 모르겠지만 다른 곳에서도 사용할 수 있을 것 같다.
 
 
 ## 0x02. Exploit
-### Memory leak
+### Memory Leak
 `user_db->user_list[32]` 이후의 영역(`Welcome!` 계정)의 메모리는 다음과 같다.
 
 ``` bash
@@ -154,10 +149,9 @@ gef➤  x/13gx $rbp-0xa0
 `pw_ptr`를 의미하는 영역에는 `user_list`의 시작 주소인 `0x7fffffffdf60`가 담겨있고, `pw_size`를 의미하는 영역에는 계정의 개수를 의미하는 `count`가 담겨있다.
 
 현재 `count`는 `main()` 초반부에 호출되는 `setup_admin_7D3A()`에서 `admin` 계정을 추가하면서 `1`이 되어있다.
+따라서 `Welcome!` 계정의 비밀번호는 `0x7fffffffdf60`에 저장된 1바이트이다.
 
-따라서 `Welcome!` 계정의 비밀번호는 `0x7fffffffdf60`에 저장된 `1`바이트이다.
-
-이를 이용해 `user`를 늘려가며 `1`바이트씩 비밀번호를 brute forcing하여 memory leak이 가능하다.
+이를 이용해 `user`를 늘려가며 1바이트씩 비밀번호를 brute forcing하여 memory leak이 가능하다.
 
 ``` bash
 # admin
@@ -172,8 +166,7 @@ gef➤  x/13gx $rbp-0xda0
 ```
 
 `0x7fffffffdf60`은 다시 말하면 `user_list[0]`이고 최초의 계정인 `admin`의 정보가 저장되어있다.
-
-`count`는 최대 `32`까지 증가시킬 수 있으므로 최대 `32`바이트까지 leak이 가능하지만, 마지막 `8`바이트는 `basic_string`의 기타 데이터이므로 총 `26`바이트만 leak을 시도했다.
+`count`는 최대 32까지 증가시킬 수 있으므로 최대 32바이트까지 leak이 가능하지만, 마지막 8바이트는 `basic_string`의 기타 데이터이므로 총 26바이트만 leak을 시도했다.
 
 이를 통해 stack 주소와 `admin`의 `pw`를 획득할 수 있다.
 
@@ -199,7 +192,7 @@ def memory_leak(s):
 
 `\t`, `\n` 등을 의미하는 값들은 입출력상 leak이 불가능하지만 자주 발생하는 문제는 아닌 것 같다.
 
-### Game win
+### Win Game
 로그인을 하면 `Play Game`, `Apply Coupon`, `Coupon usage history`, `Change PW`, `Print Information`중 하나를 할 수 있다.
 
 이 중 `Change PW`와 `Print Information`은 `Play Game`에서 보스를 쓰러뜨리고 `regular member`가 되어야 사용할 수 있는 메뉴이다.
@@ -207,11 +200,9 @@ def memory_leak(s):
 문제를 풀 때는 다음 단계로 넘어가기 위해 일단 게임을 깼는데 지금처럼 먼저 exploit 시나리오를 세워서 목적을 가지고 진행하는 습관을 들여야겠다.
 
 OOB 취약점을 이용해서 `Welcome!` 계정으로 게임을 깨고 `Change PW`를 호출하면 `pw_ptr`이 가리키는 곳의 값을 변경할 수 있다.
-
 `Welcome!->pw_ptr`은 `admin->pw_ptr`이 저장된 주소를 가리키고 있으므로, `admin->pw_ptr`을 원하는 주소로 바꿔놓고 `admin`으로 로그인해서 다시 `Change PW`를 호출하면 앞서 설정한 원하는 주소에 데이터를 쓸 수 있는 AAW를 획득할 수 있다.
 
 다만 완전히 AAW는 아닌 것이 `admin->pw_ptr`을 바꾸는 순간 `admin`으로 로그인을 하기 위해 필요한 비밀번호가 바뀐다.
-
 따라서 데이터를 쓸 주소에 저장된 값을 알고 있어야 하는데, 지금 생각해보니 `Welcome!`의 비밀번호를 바꿀 때 `admin->pw_size`까지 `1`로 바꿔서 brute forcing을 해도 괜찮을 것 같다.
 
 아무튼 게임은 나를 따라오는 `Enemy`를 피해 `Item`을 획득해서 `Attack`과 `Defense`를 올린 뒤 `Enemy`와 싸워야 하는데 `Item`을 다 먹어도 `Enemy`를 이길 수 없다.
@@ -246,10 +237,9 @@ __int64 __fastcall join_8A4A(user_db *user_db)
 ```
 
 다행히 `join_8A4A()`을 보면 `id`가 중복되었는지를 `user_list`를 `count`까지만 돌면서 확인하기 때문에 `Welcome!`이라는 계정을 생성할 수 있다.
+또한 `login_790E()`에서도 `id`만 맞고 `pw`가 다를 경우 그냥 다음 루프로 넘어가기 때문에 가입 이후에도 33번째 `Welcome!` 계정에 로그인이 가능하다.
 
-또한 `login_790E()`에서도 `id`만 맞고 `pw`가 다를 경우 그냥 다음 루프로 넘어가기 때문에 가입 이후에도 `33`번째 `Welcome!` 계정에 로그인이 가능하다.
-
-마지막은 생성한 `Welcome!` 계정의 `coupon`을 `33`번째 `Welcome!` 계정이 사용할 수 있는가인데 디버거에서 `secret key`를 확인해 jwt.io에서 내용을 확인한 결과 다음과 같이 `userid`가 같기 때문에 `33`번째 `Welcome!` 계정에서 `coupon`을 사용할 수 있었다.
+마지막은 생성한 `Welcome!` 계정의 `coupon`을 33번째 `Welcome!` 계정이 사용할 수 있는가인데 디버거에서 `secret key`를 확인해 jwt.io에서 내용을 확인한 결과 다음과 같이 `userid`가 같기 때문에 33번째 `Welcome!` 계정에서 `coupon`을 사용할 수 있었다.
 
 ![jwt info](https://github.com/user-attachments/assets/16e803e0-4ba8-4732-b7b5-3ef162ca3895)
 
@@ -282,11 +272,9 @@ __int64 __fastcall join_8A4A(user_db *user_db)
 
 이유는 모르겠는데 `(0, 16)`에 가면 높은 확률로 `Enemy`와 두 칸 차이가 나게 되어 `Item`의 column을 보고 너무 가까운 곳에 있으면 그냥 게임을 재시작하는게 빨라 해당 코드를 추가했다.
 
-### Libc leak
+### Libc Leak
 상술한 방법으로 AAW를 얻는다 쳐도 RIP를 어디로 control할 지가 문제이다.
-
 따라서 libc leak이 필요하다고 판단했고, 출력부를 확인해보니 `Print Information`이 있었다.
-
 여기에서 `email`을 출력해주는데 `email_size`가 `Welcome!->login_success` 영역과 겹친다.
 
 따라서 로그인을 성공시켜 `login_success` 값을 늘리면 memory leak이 가능할 것으로 판단했다.
@@ -305,7 +293,7 @@ __int64 __fastcall join_8A4A(user_db *user_db)
     log.info(f"libc : {hex(lib.address)}")
 ```
 
-### RIP control
+### RIP Control
 이제 stack 주소를 알고있으니 `main()`의 return address를 덮어서 ROP 가젯들을 실행한 뒤 `execve`를 실행하게끔 payload를 작성했다.
 
 다만 `main()` 종료 직전에 호출되는 `free_db_24FBA()`에서 각 `user` 정보들을 저장한 객체들을 해제하기 때문에 AAW를 위해 바꿔둔 `admin->pw_ptr`을 원복시켜야 한다.
