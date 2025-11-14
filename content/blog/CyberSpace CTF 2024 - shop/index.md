@@ -4,7 +4,7 @@ date = "2024-10-09"
 description = "CyberSpace CTF 2024 pwnable challenge"
 
 [taxonomies]
-tags = ["ctf", "pwnable", "uaf", "fastbin reverse into tcache", "partial overwrite", "unsorted bin", "fsop", "stdout"]
+tags = ["ctf", "pwnable", "uaf", "fastbin reverse into tcache", "partial overwrite", "arbitrary write", "unsorted bin", "fsop", "stdout"]
 +++
 
 ## 0x00. Introduction
