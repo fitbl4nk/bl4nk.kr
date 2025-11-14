@@ -15,7 +15,7 @@ Windows 커널을 분석하기 위한 환경을 구축하고 유용한 명령어
 
 
 ## 0x01. Setup
-### Host(Debugger)
+### Host (Debugger)
 예전에는 Windows SDK, Virtual KD 등 편의성을 위해 설치 과정이 복잡했었는데, 이제는 WinDbg가 정식 출시되며 많이 간단해졌다.
 Microsoft Store에 가서 WinDbg를 설치하고 실행하면 끝이다.
 
@@ -25,7 +25,7 @@ Microsoft Store에 가서 WinDbg를 설치하고 실행하면 끝이다.
 
 설정을 완료하고 오른쪽 하단의 "OK"를 누르면 디버깅 대기 상태에 들어간다.
 
-### Guest(Debuggee)
+### Guest (Debuggee)
 디버깅 대상은 다양한 프로그램을 통해 구축할 수 있는데 이번 포스트에서는 VMware를 통해 구축한 경우 설정 방법에 대해 기술한다.
 
 먼저 대상 vm을 켜고 powershell을 관리자 권한으로 실행한 후 다음 명령을 실행한다.
@@ -165,6 +165,7 @@ kd> !thread [Address]
 ### Debug
 #### `bp` `ba` (Break Point)
 지정한 주소나 심볼을 실행할 때 흐름을 멈추는 명령이다. `ba` 명령어를 이용하여 특정 메모리를 읽기 / 쓰기 / 실행할 때 멈추도록 할 수도 있다.
+
 ``` windbg
 kd> bp 0x401000
 kd> bp ntdll!NtCreateFile
