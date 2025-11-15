@@ -4,7 +4,7 @@ date = "2025-09-15"
 description = "Defenit CTF 2020 pwnable challenge"
 
 [taxonomies]
-tags = ["ctf", "pwnable", "linux kernel", "uaf", "logical bug", "out of bound"]
+tags = ["ctf", "pwnable", "linux kernel", "out of bound", "uaf", "kernel stack pivoting"]
 +++
 
 ## 0x00. Introduction
@@ -25,7 +25,8 @@ KASLR과 SMEP가 적용되어 있다.
 소스 코드와 intended solution이 출제자님 [github](https://github.com/V4bel/2020_defenit_ctf)에 올라와 있다.
 
 ### Concept
-키보드, 마우스와 같은 사용자 입력 장치와 커널을 연결해주는 **input device driver**를 흉내낸 코드이다. 예를 들어 하드웨어인 키보드에서 특정 키를 누르면,
+키보드, 마우스와 같은 사용자 입력 장치와 커널을 연결해주는 **input device driver**를 흉내낸 코드이다.
+예를 들어 하드웨어인 키보드에서 특정 키를 누르면,
 
 1. 드라이버가 스캔 코드로 키를 확인
 2. 리눅스 Input Subsystem에 이벤트를 발생시켜 보고
@@ -35,7 +36,7 @@ KASLR과 SMEP가 적용되어 있다.
 
 
 ## 0x01. Vulnerability
-### Out Of Bound
+### Info Leak
 ``` c
 static int report_touch_press(char *start, int len) {
     int i;
@@ -84,8 +85,9 @@ static long input_test_driver_ioctl(struct file *filp, unsigned int cmd, unsigne
 `input_test_driver_ioctl()`는 유저 공간에서 해당 드라이버에 대해 `ioctl()`를 호출했을 때 커널 내부에서 호출되는 함수이다.
 `cmd`를 `0x1337`으로 설정해서 `ioctl()`을 호출하면 `_fp`의 존재 여부에 따라 구조체를 초기화하고 `fp_report_ps()`를 호출한다.
 
-`report_touch_press()`, `report_touch_release()`은 각각 터치 스크린의 누름, 뗌을 감지하여 이벤트를 발생시키는 함수이다. 이 때 두 번째 인자인 `len`에 `strlen(ptr)`이 들어가게 된다.
-그러면 `ptr`이 `NULL`을 만나기 전까지의 길이가 `len`에 전달되므로 OOB 취약점이 발생한다.
+`report_touch_press()`, `report_touch_release()`은 각각 터치 스크린의 누름, 뗌을 감지하여 이벤트를 발생시키는 함수이다.
+이 때 두 번째 인자인 `len`에 `strlen(ptr)`이 들어가게 된다.
+그러면 `ptr`이 `NULL`을 만나기 전까지의 길이가 `len`에 전달되므로 `\x00`을 꽉 채우면 뒤 메모리까지 leak이 가능하다.
 
 사실 이걸로 충분할 것 같은데 `report_touch_press()` 내부에서도 `for(i=0; i<=len; i++)`와 같이 `<=`으로 범위를 체크하기 때문에 1-byte OOB가 발생한다.
 
@@ -126,7 +128,7 @@ static ssize_t input_test_driver_write(struct file *filp, const char __user *buf
 
 `input_test_driver_write()`는 유저 공간에서 해당 드라이버에 대해 `write()`를 호출했을 때 커널 내부에서 호출되는 함수이다.
 
-문제는 `ptr`가 `kmalloc()`으로 할당받은 영역을 가리키고 있을 때 해당 영역을 해제하고 다시 할당하는데, `ptr`을 초기화하지는 않는다.
+문제는 `ptr`이 `NULL`이 아니면 가리키고 있는 영역을 해제하고 다시 할당하는데, `ptr`을 초기화하지는 않는다.
 대신 뒤에서 슬랩 객체를 새로 할당해서 `ptr`에 주소를 넣어주는데, 여기에서 또 다른 취약점이 발생한다.
 
 커널의 `kmalloc()`에서 큰 사이즈의 슬랩 객체를 요청하면 할당에 실패하게 되고, `NULL`을 리턴한다.
@@ -134,7 +136,7 @@ static ssize_t input_test_driver_write(struct file *filp, const char __user *buf
 
 
 ## 0x02. Exploit
-### Out Of Bound
+### Info Leak
 Exploit을 진행하기에 앞서 보호 기법을 되짚어보면 SMEP가 걸려있기 때문에 kernel ROP를 해야하지만, KASLR이 걸려있어 커널 base 주소를 구해야 한다.
 
 ``` c
@@ -189,10 +191,10 @@ static int input_test_driver_release(struct inode *inode, struct file *file) {
     ioctl(fd2, 0x1337, NULL);
 ```
 
-이렇게 `ioctl()` 호출을 통해 `_fp`를 할당하고 `close()`하면 슬랩 객체의 크기가 `416`바이트이므로 `kmalloc-512` 캐시로 이동한다.
-`printk()`의 주소를 덮어쓰지 않기 위해 `392`바이트의 슬랩 객체를 할당하려고 하면 `kmalloc-512` 캐시에 있는 객체가 반환된다.
+이렇게 `ioctl()` 호출을 통해 `_fp`를 할당하고 `close()`하면 슬랩 객체의 크기가 416바이트이므로 `kmalloc-512` 캐시로 이동한다.
+`printk()`의 주소를 덮어쓰지 않기 위해 392바이트의 슬랩 객체를 할당하려고 하면 `kmalloc-512` 캐시에 있는 객체가 반환된다.
 
-이를 이용해 `392`바이트를 `0x42`로 채워넣으면 `strlen()`에서 `NULL`을 만날 때까지 길이를 측정하므로 `printk()`의 주소를 leak할 수 있다.
+이를 이용해 392바이트를 0이 아닌 값(0x42)로 채워넣으면 `strlen()`에서 `NULL`을 만날 때까지 길이를 측정하므로 `printk()`의 주소를 leak할 수 있다.
 
 ``` bash
 / $ ./exp

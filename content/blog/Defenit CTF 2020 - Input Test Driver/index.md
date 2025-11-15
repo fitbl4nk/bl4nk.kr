@@ -4,7 +4,7 @@ date = "2025-09-15"
 description = "Defenit CTF 2020 pwnable challenge"
 
 [taxonomies]
-tags = ["ctf", "pwnable", "linux kernel", "uaf", "logical bug", "out of bound"]
+tags = ["ctf", "pwnable", "linux kernel", "out of bound", "uaf", "kernel stack pivoting"]
 +++
 
 ## 0x00. Introduction
@@ -25,7 +25,8 @@ KASLR and SMEP are enabled.
 The source code and intended solution are available on the author's [github](https://github.com/V4bel/2020_defenit_ctf).
 
 ### Concept
-This mimics an **input device driver** that connects user input devices like keyboards and mice to the kernel. For example, when a specific key is pressed on the keyboard hardware:
+This mimics an **input device driver** that connects user input devices like keyboard and mouse to the kernel.
+For example, when a specific key is pressed on the keyboard hardware:
 
 1. The driver identifies the key by scan code
 2. Reports it by generating an event to the Linux Input Subsystem
@@ -35,7 +36,7 @@ User space reads the `/dev/input/eventX` device file and translates it into actu
 
 
 ## 0x01. Vulnerability
-### Out Of Bound
+### Info Leak
 ``` c
 static int report_touch_press(char *start, int len) {
     int i;
@@ -84,8 +85,9 @@ static long input_test_driver_ioctl(struct file *filp, unsigned int cmd, unsigne
 `input_test_driver_ioctl()` is called internally in the kernel when user space calls `ioctl()` on this driver.
 Calling `ioctl()` with `cmd` set to `0x1337` initializes the structure if `_fp` doesn't exist and calls `fp_report_ps()`.
 
-`report_touch_press()` and `report_touch_release()` detect touchscreen press and release events respectively. The second argument `len` receives `strlen(ptr)`.
-Since `len` gets the length until `ptr` encounters `NULL`, an OOB vulnerability occurs.
+`report_touch_press()` and `report_touch_release()` detect touchscreen press and release events respectively.
+At this point, the second argument `len` receives `strlen(ptr)`.
+Then the length until `ptr` encounters `NULL` is passed to `len`, so filling all `\x00`s enables leaking subsequent memory.
 
 This alone seems sufficient, but there's also a 1-byte OOB inside `report_touch_press()` due to checking range with `for(i=0; i<=len; i++)`.
 
@@ -126,15 +128,15 @@ static ssize_t input_test_driver_write(struct file *filp, const char __user *buf
 
 `input_test_driver_write()` is called internally when user space calls `write()` on this driver.
 
-The problem is that when `ptr` points to a region allocated by `kmalloc()`, it frees and reallocates that region without initializing `ptr`.
+The problem is that when `ptr` is not `NULL`, it frees and reallocates the region `ptr` is pointing at, but doesn't initialize `ptr`.
 Instead, it allocates a new slab object and assigns the address to `ptr`, creating another vulnerability.
 
-When the kernel's `kmalloc()` requests a large slab object, allocation fails and returns `NULL`.
-If `result` gets `NULL`, `ptr` isn't updated, leaving the freed `ptr` as a dangling pointer.
+When the kernel's `kmalloc()` requests a too large slab object, the allocation fails and returns `NULL`.
+If `result` is `NULL`, `ptr` doesn't get updated, leaving the freed `ptr` as a dangling pointer.
 
 
 ## 0x02. Exploit
-### Out Of Bound
+### Info Leak
 Before proceeding with exploitation, reviewing the protections: SMEP requires kernel ROP, but KASLR requires obtaining the kernel base address.
 
 ``` c
@@ -146,8 +148,8 @@ static struct fp_struct {
 };
 ```
 
-The variable name `fp_struct->gift` obviously contains the address of the `printk()` function.
-Thinking carefully, filling `dummy` completely exploits the vulnerability using `strlen()` for length measurement, printing up to the address stored in `gift`.
+Obviously, the variable name `fp_struct->gift` contains the address of the `printk()` function.
+Therefore, filling `dummy` completely exploits the info leak vulnerability using `strlen()` for length measurement, printing up to the address stored in `gift`.
 
 ``` c
 static int input_test_driver_release(struct inode *inode, struct file *file) {
@@ -171,7 +173,7 @@ static int input_test_driver_release(struct inode *inode, struct file *file) {
 }
 ```
 
-Looking at `input_test_driver_release()` called when closing the file descriptor opened for driver communication, it frees and initializes both `ptr` and `_fp`.
+Looking at `input_test_driver_release()` which is called on closing the file descriptor opened for driver communication, it frees and initializes both `ptr` and `_fp`.
 
 However, since data inside the slab object isn't cleared, allocating a `ptr` of similar size to the freed `_fp` reuses the freed region.
 
@@ -190,10 +192,10 @@ However, since data inside the slab object isn't cleared, allocating a `ptr` of 
     ioctl(fd2, 0x1337, NULL);
 ```
 
-Allocating `_fp` through `ioctl()` and closing moves it to the `kmalloc-512` cache since the slab object size is `416` bytes.
-Attempting to allocate a `392`-byte slab object to avoid overwriting `printk()`'s address returns an object from the `kmalloc-512` cache.
+Allocating `_fp` through `ioctl()` and closing moves `_fp` to the `kmalloc-512` cache since the slab object size is 416 bytes.
+Attempting to allocate a 392-byte slab object to avoid overwriting `printk()`'s address returns an object from the `kmalloc-512` cache.
 
-Filling `392` bytes with `0x42` makes `strlen()` measure length until encountering `NULL`, leaking `printk()`'s address:
+Filling 392 bytes with a non-zero value (0x42) makes `strlen()` measure length until encountering `NULL`, leaking `printk()`'s address.
 
 ``` bash
 / $ ./exp
@@ -248,7 +250,7 @@ static ssize_t input_test_driver_write(struct file *filp, const char __user *buf
 }
 ```
 
-This makes `ptr` and `_fp` point to the same slab object. Even if `kmalloc()` fails due to large `size`, `copy_from_user()` still executes, allowing us to overwrite `_fp`'s function pointers.
+This makes `ptr` and `_fp` point to the same slab object. Even if `kmalloc()` fails due to large `size`, `copy_from_user()` is still executed, allowing us to overwrite `_fp`'s function pointers.
 
 ``` c
     fd2 = open("/dev/input_test_driver", O_RDWR);
