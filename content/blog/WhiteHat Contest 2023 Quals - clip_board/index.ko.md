@@ -191,11 +191,11 @@ FSOP 기법은 [이 글](../exploiting-fsop-in-glibc-2-35/)에 정리한 내용�
 어... 신나게 설명했는데 사실 가장 큰 문제가 하나 있다.
 OOB 취약점을 이용하여 `chunk_list[-4]`에 위치한 `stdout`을 overwrite하면 메모리는 다음 이미지와 같다.
 
-![overwrite stdout](https://github.com/user-attachments/assets/516ba80e-e929-4134-8286-90478be22a81)
+![overwrite stdout](./image.png)
 
 그런데 사실 `_IO_flush_all_lockp`는 `_IO_list_all`을 순회하며 file stream에 overflow가 발생했는지 확인하기 때문에, 공격자가 할당한 `wide_vtable`의 `one_gadget` 함수가 호출되기 위해서는 메모리가 다음 이미지와 같아져야 한다.
 
-![overwrite stdout and unlink _IO_list_all](https://github.com/user-attachments/assets/3d1e80f6-522d-4118-bc39-b87ff0a4e7df)
+![overwrite stdout and unlink _IO_list_all](./image-1.png)
 
 따라서 libc 영역에 있는 `_IO_list_all` 포인터를 overwrite 해야한다...
 

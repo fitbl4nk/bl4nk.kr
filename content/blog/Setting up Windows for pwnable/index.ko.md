@@ -18,7 +18,7 @@ tags = ["tools", "pwnable", "setting", "wsl", "vscode"]
 ### WSL
 `Turn Windows Features On or Off(Windows 기능 켜기/끄기)`에서 다음 항목 체크
 
-![wsl](https://github.com/user-attachments/assets/8cb36560-c5a5-43e1-8a4d-cbae336fdf34)
+![wsl](./image.png)
 
 재시작 후 터미널에서 다음 명령어 실행
 
@@ -87,7 +87,7 @@ x86/x86-64 아키텍처만 지원하긴 하지만 IDA를 무료로 사용할 수
 ### shell:sendto
 `win + r` 실행 창에서 `shell:sendto`를 입력하면 파일을 우클릭했을 때 `send to(보내기)`에 보이는 프로그램 목록을 등록할 수 있다.
 
-![shell_sendto](https://github.com/user-attachments/assets/fd79c254-35f6-48cc-85d4-5a0d8dcc8332)
+![shell_sendto](./image-1.png)
 
 예시로 IDA 바로가기를 만들어서 해당 폴더에 올려둔 뒤, 바이너리를 우클릭해서 `send to(보내기)`의 IDA를 선택하면 바로 바이너리를 분석할 수 있다.
 Windows 11부터는 `Show more options(추가 옵션 표시)`를 눌러야 보여서 조금 불편하긴 하지만 꽤나 유용하다.

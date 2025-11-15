@@ -172,7 +172,7 @@ While pondering, I thought that just like partially overwriting the heap address
 Getting a libc address into `next_chunk` can be accomplished with unsorted bin attack, but requires careful chunk overlapping.
 Illustrated as follows:
 
-![exploit scenario](https://github.com/user-attachments/assets/aece5a2b-2051-4b43-80b1-df68fea69396)
+![exploit scenario](./image.png)
 
 First, since we'll ultimately perform AAW using chunks in fastbin, send sufficiently sized (0x60) chunks to fastbin.
 To send the victim chunk to unsorted bin, we need to carefully position intermediate chunks so the offset with `next_chunk` matches `size`.

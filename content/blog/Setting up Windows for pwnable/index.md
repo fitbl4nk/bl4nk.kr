@@ -18,7 +18,7 @@ I'll add more useful settings or tools as I discover them.
 ### WSL
 In `Turn Windows Features On or Off`, check the following items.
 
-![wsl](https://github.com/user-attachments/assets/8cb36560-c5a5-43e1-8a4d-cbae336fdf34)
+![wsl](./image.png)
 
 After restarting, execute these commands in the terminal.
 
@@ -87,7 +87,7 @@ It seems fine now, but I once had an experience where it was too slow, and using
 ### shell:sendto
 Typing `shell:sendto` in the `win + r` run window lets you register programs that appear in the `send to` menu when right-clicking files.
 
-![shell_sendto](https://github.com/user-attachments/assets/fd79c254-35f6-48cc-85d4-5a0d8dcc8332)
+![shell_sendto](./image-1.png)
 
 For example, create an IDA shortcut and place it in that folder.
 Then right-click a binary and select IDA from `send to` to analyze it directly.

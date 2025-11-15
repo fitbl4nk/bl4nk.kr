@@ -345,9 +345,9 @@ $ sudo seccomp-tools dump -p `pgrep filter`
 
 `bash`에서 사용하면 색깔이 입혀져서 출력이 나오기 때문에 보기 편하다.
 
-![image](https://github.com/user-attachments/assets/386bcaed-3ac9-4bd9-b084-8bc85ff8f442)
+![image](./image.png)
 
-![image](https://github.com/user-attachments/assets/31a4405c-73b6-4427-8868-2352f33690e3)
+![image](./image-1.png)
 
 
 ## 0x03. Expected Vulnerability

@@ -246,7 +246,7 @@ Also, in `login_790E()`, if only the `id` matches and `pw` doesn't, it just cont
 The last question is whether the created `Welcome!` account's `coupon` can be used by the 33rd `Welcome!` account.
 After checking the `secret key` in the debugger and examining the content on jwt.io, they have the same `userid`, so the 33rd `Welcome!` account could use the `coupon`.
 
-![jwt info](https://github.com/user-attachments/assets/16e803e0-4ba8-4732-b7b5-3ef162ca3895)
+![jwt info](./image.png)
 
 So I wrote the payload as follows.
 

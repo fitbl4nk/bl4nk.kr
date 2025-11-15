@@ -241,7 +241,7 @@ __int64 __fastcall join_8A4A(user_db *user_db)
 
 마지막은 생성한 `Welcome!` 계정의 `coupon`을 33번째 `Welcome!` 계정이 사용할 수 있는가인데 디버거에서 `secret key`를 확인해 jwt.io에서 내용을 확인한 결과 다음과 같이 `userid`가 같기 때문에 33번째 `Welcome!` 계정에서 `coupon`을 사용할 수 있었다.
 
-![jwt info](https://github.com/user-attachments/assets/16e803e0-4ba8-4732-b7b5-3ef162ca3895)
+![jwt info](./image.png)
 
 따라서 다음과 같이 payload를 작성했다.
 

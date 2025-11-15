@@ -347,9 +347,9 @@ You can use the `dump` command like this.
 The `emu` is a good command to check whether syscalls are properly called or blocked by emulating rule sets.
 When ran in `bash`, the output is colored and easy to check.
 
-![image](https://github.com/user-attachments/assets/386bcaed-3ac9-4bd9-b084-8bc85ff8f442)
+![image](./image.png)
 
-![image](https://github.com/user-attachments/assets/31a4405c-73b6-4427-8868-2352f33690e3)
+![image](./image-1.png)
 
 
 ## 0x03. Expected Vulnerability

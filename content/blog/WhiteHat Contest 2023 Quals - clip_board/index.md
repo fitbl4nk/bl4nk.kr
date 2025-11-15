@@ -194,11 +194,11 @@ In the challenge, we can freely allocate memory using the `AddClipboard()` funct
 Uh... I explained enthusiastically, but there's actually one major problem.
 When overwriting `stdout` at `chunk_list[-4]` using the OOB vulnerability, memory looks like this image.
 
-![overwrite stdout](https://github.com/user-attachments/assets/516ba80e-e929-4134-8286-90478be22a81)
+![overwrite stdout](./image.png)
 
 However, since `_IO_flush_all_lockp` actually traverses `_IO_list_all` checking for overflow in file streams, for the attacker's allocated `wide_vtable`'s `one_gadget` function to be called, memory needs to look like this image.
 
-![overwrite stdout and unlink _IO_list_all](https://github.com/user-attachments/assets/3d1e80f6-522d-4118-bc39-b87ff0a4e7df)
+![overwrite stdout and unlink _IO_list_all](./image-1.png)
 
 Therefore, we need to overwrite the `_IO_list_all` pointer in the libc region...
 

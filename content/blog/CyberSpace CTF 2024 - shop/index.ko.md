@@ -172,7 +172,7 @@ Tcachebins[idx=0, size=0x20, count=3] ←  Chunk(addr=0x555555559b70, size=0x20,
 `next_chunk`에 libc 주소가 담기게 하는 것은 unsorted bin attack으로 가능한데, chunk를 잘 중첩시켜야 한다.
 그림으로 나타내면 다음과 같다.
 
-![exploit scenario](https://github.com/user-attachments/assets/aece5a2b-2051-4b43-80b1-df68fea69396)
+![exploit scenario](./image.png)
 
 먼저 최종적으로는 fastbin에 있는 chunk를 이용해 AAW를 수행할 것이므로 충분한 사이즈(0x60)의 chunk를 fastbin으로 보낸다.
 이 때 victim chunk를 unsorted bin으로 보내기 위해 `next_chunk`와의 offset이 `size`와 일치하도록 중간에 chunk를 잘 배치해야 한다.
