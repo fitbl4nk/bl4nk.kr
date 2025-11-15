@@ -51,7 +51,7 @@ struct __fixed bot
 };
 ```
 
-The `bot` structure is composed as shown above and allocates a chunk of size `0x20` when created.
+The `bot` structure is composed as shown above and allocates a chunk of size 0x20 when created with `malloc()`.
 
 
 ## 0x01. Vulnerability
@@ -84,8 +84,8 @@ int deploy_task_1CE0()
 }
 ```
 
-In `deploy_task_1CE0()`, which conceptually delivers commands, the function checks if the global variable `task_running_40C8` is `0`, and if so, changes it to `1` before creating a thread.
-Since this value is managed by a mutex to be reset to `0`, `deploy_task_1CE0()` cannot be called again before aborting the task.
+In `deploy_task_1CE0()`, which conceptually delivers commands, the function checks if the global variable `task_running_40C8` is 0, and if so, changes it to 1 before creating a thread.
+Since this value is managed by a mutex to be reset to 0, `deploy_task_1CE0()` cannot be called again before aborting the task.
 
 ``` c
 void *__fastcall start_routine(void *a1)
@@ -169,7 +169,7 @@ int update_bot_18D0()
 ```
 
 In `update_bot_18D0()`, an `index` is received to select which `bot` to update.
-At this point, it should be compared with `bot_count_40CC` which stores the number of bots, but instead it checks if the value is greater than the maximum value of 4.
+At this point, it should be compared with `bot_count_40CC` which stores the number of bots, but instead it checks if the value is greater than 4, which is the maximum number of bots.
 Therefore, as long as the pointer points to a valid address, it's possible to access a freed `bot`.
 
 
@@ -177,7 +177,7 @@ Therefore, as long as the pointer points to a valid address, it's possible to ac
 ### Libc Leak
 Anyway, since there are no address values and the output section only exists in the thread function `start_routine()`, I came to think of info leak addresses through `bot->ip` or `bot->info`.
 
-Between the two, `bot->info` is a large chunk of size `0x500`, so when freed, it goes to the unsorted bin.
+Between the two, `bot->info` is a large chunk of size 0x500, so when freed, it goes to the unsorted bin.
 Looking at the memory, it stores an address from the middle of libc's `main_arena` as follows.
 
 ``` bash
@@ -211,7 +211,7 @@ Since the output section prints `info` with the `%s` format string, if we fill `
     abort_task(s)
 ```
 
-### UAF
+### Use After Free
 Now we need to leave a dangling pointer for UAF.
 Actually, all we need to do is create and free a `bot`.
 
@@ -241,7 +241,7 @@ Fastbins[idx=5, size=0x70] 0x00
 Fastbins[idx=6, size=0x80] 0x00
 ```
 
-The first `bot` was allocated at `0x5555555592a0` and then freed, resulting in a chunk in the fastbin of size `0x30`.
+The first `bot` was allocated at `0x5555555592a0` and then freed, resulting in a chunk in the fastbin of size 0x30.
 
 ``` c
 int send_command_1A70()
@@ -273,10 +273,11 @@ int send_command_1A70()
 }
 ```
 
-Conveniently, `send_command_1A70()` allocates a chunk of size `0x20`, so it receives the chunk from the `0x30` fastbin, and we can also write content to it.
+Conveniently, `send_command_1A70()` allocates a chunk of size 0x20, so it receives the chunk from the 0x30 fastbin, and we can also write content to it.
 Therefore, we can modify the address values that `bot->ip` or `bot->info` points to through `send_command_1A70()`, then create AAW (Arbitrary Address Write) with `update_bot_18D0()`.
 
-Now we need to think about how to achieve RIP control using AAW. Since there's no leak other than libc leak and we can write a large amount of content of size `0x500`, I decided to use FSOP.
+Now we need to think about how to achieve RIP control using AAW.
+Since there's no leak other than libc leak and we can write a large amount of content of size 0x500, I decided to use FSOP.
 
 ### FSOP
 First, as mentioned earlier, we modify the content of the `bot` structure using `send_command_1A70()`.
@@ -288,9 +289,10 @@ First, as mentioned earlier, we modify the content of the `bot` structure using 
     send_command(s, b"1", payload)
 ```
 
-I put the address of any meaningless region in the libc area into `buf` since it's not needed for exploitation. Since `bot->info` is pointing to `stdout`, we can modify the content of `stdout` when updating `bot->info`.
+I put the address of any meaningless region in the libc area into `buf` since it's not needed for exploitation.
+Since `bot->info` is pointing to `stdout`, we can modify the content of `stdout` when updating `bot->info`.
 
-Since we can overwrite up to the `vtable` pointer, which is the last field of `stdout` (over `0xe0`), we can use the following FSOP payload.
+Since we can overwrite up to the `vtable` pointer, which is the last field of `stdout` (over 0xe0), we can use the following FSOP payload.
 
 ``` python
     stdout_lock = lib.sym.__nptl_last_event - 0x48

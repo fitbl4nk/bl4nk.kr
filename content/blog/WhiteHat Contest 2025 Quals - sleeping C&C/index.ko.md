@@ -51,7 +51,7 @@ struct __fixed bot
 };
 ```
 
-`bot`은 위와 같이 구성되며 생성 시 `0x20` 크기의 chunk를 할당받는다.
+`bot`은 위와 같이 구성되며 `malloc()`으로 생성 시 0x20 크기의 chunk를 할당받는다.
 
 
 ## 0x01. Vulnerability
@@ -84,8 +84,8 @@ int deploy_task_1CE0()
 }
 ```
 
-명령을 전달하는 컨셉의 `deploy_task_1CE0()`에서 전역 변수 `task_running_40C8`의 값이 `0`인지 체크하고 맞으면 `1`로 바꾼 뒤 쓰레드를 생성한다.
-이 값을 다시 `0`으로 바꾸는 것은 mutex로 관리되기 때문에 `deploy_task_1CE0()`는 abort task를 하기 전에 다시 호출할 수 없다.
+명령을 전달하는 컨셉의 `deploy_task_1CE0()`에서 전역 변수 `task_running_40C8`의 값이 0인지 체크하고 맞으면 1로 바꾼 뒤 쓰레드를 생성한다.
+이 값을 다시 0으로 바꾸는 것은 mutex로 관리되기 때문에 `deploy_task_1CE0()`는 abort task를 하기 전에 다시 호출할 수 없다.
  
 ``` c
 void *__fastcall start_routine(void *a1)
@@ -177,7 +177,7 @@ int update_bot_18D0()
 ### Libc Leak
 어쨌던간에 아무런 주소값도 없고 출력부가 쓰레드 함수인 `start_routine()`에만 있기 때문에 `bot->ip`나 `bot->info`를 통해 leak을 해야겠다는 생각이 들었다.
 
-이 중 `bot->info`는 `0x500`짜리 큰 크기의 chunk이기 때문에 해제되면 unsorted bin으로 가게 된다.
+이 중 `bot->info`는 0x500짜리 큰 크기의 chunk이기 때문에 해제되면 unsorted bin으로 가게 된다.
 메모리를 보면 다음과 같이 libc의 `main_arena` 중간 주소를 저장하고 있다.
 
 ``` bash
@@ -211,7 +211,7 @@ gef➤  x/4gx 0x00005555555592f0
     abort_task(s)
 ```
 
-### UAF
+### Use After Free
 이제 UAF를 위해 dangling pointer를 남겨두어야 한다.
 사실 `bot` 생성 후 해제하기만 하면 바로 dangling pointer를 만들 수 있다.
 
@@ -241,7 +241,7 @@ Fastbins[idx=5, size=0x70] 0x00
 Fastbins[idx=6, size=0x80] 0x00
 ```
 
-첫 번째 `bot`이 `0x5555555592a0`에 할당되었다가 해제되었으며, 그로 인해 크기가 `0x30`인 fastbin에 chunk가 들어가 있다.
+첫 번째 `bot`이 `0x5555555592a0`에 할당되었다가 해제되었으며, 그로 인해 크기가 0x30인 fastbin에 chunk가 들어가 있다.
 
 ``` c
 int send_command_1A70()
@@ -273,10 +273,10 @@ int send_command_1A70()
 }
 ```
 
-마침 `send_command_1A70()`에서 `0x20`짜리 chunk를 할당받기 때문에 `0x30` fastbin에서 chunk를 받아오고, 내용도 쓸 수 있다.
+마침 `send_command_1A70()`에서 0x20짜리 chunk를 할당받기 때문에 0x30 fastbin에서 chunk를 받아오고, 내용도 쓸 수 있다.
 따라서 `send_command_1A70()`를 통해 `bot->ip`나 `bot->info`가 가리키는 주소값을 변조한 뒤 `update_bot_18D0()`으로 AAW를 만들 수 있다.
 
-이제 AAW를 이용해 어떻게 RIP control을 할지 고민해야하는데, libc leak 말고 다른 leak이 없고 `0x500`이라는 큰 크기의 내용을 쓸 수 있으므로 FSOP를 이용하기로 했다.
+이제 AAW를 이용해 어떻게 RIP control을 할지 고민해야하는데, libc leak 말고 다른 leak이 없고 0x500이라는 큰 크기의 내용을 쓸 수 있으므로 FSOP를 이용하기로 했다.
 
 ### FSOP
 먼저 앞서 언급한대로 `send_command_1A70()`를 이용해 `bot` 구조체의 내용을 변조한다.
@@ -290,7 +290,7 @@ int send_command_1A70()
 
 `buf`는 exploit에서 필요하지 않으므로 libc 영역 중 무의미한 아무 영역의 주소를 넣었다. `bot->info`가 `stdout`을 가리키고 있으므로 `bot->info`를 update할 때 `stdout`의 내용을 변조할 수 있다.
 
-`stdout`의 마지막 필드인 `vtable` 포인터까지 덮을 수 있으므로(`0xe0` 이상) 다음 FSOP payload를 사용할 수 있다.
+`stdout`의 마지막 필드인 `vtable` 포인터까지 덮을 수 있으므로(0xe0 이상) 다음 FSOP payload를 사용할 수 있다.
 
 ``` python
     stdout_lock = lib.sym.__nptl_last_event - 0x48
