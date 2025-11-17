@@ -1,5 +1,5 @@
 +++
-title = "WhiteHat Contest 2025 Quals - sleeping C&C"
+title = "WhiteHat Contest 2025 Quals - Sleeping C&C"
 date = "2025-11-02"
 description = "WhiteHat Contest 2025 Quals pwnable challenge"
 
@@ -39,7 +39,7 @@ tags = ["ctf", "pwnable", "uaf", "improper check", "logical bug", "fsop", "unsor
 >>
 ```
 
-This challenge implements the operation of a C2 server.
+C2 서버의 동작을 구현해놓은 문제이다.
 
 ### Structure
 ``` c
@@ -51,7 +51,7 @@ struct __fixed bot
 };
 ```
 
-The `bot` structure is composed as shown above and allocates a chunk of size 0x20 when created with `malloc()`.
+`bot`은 위와 같이 구성되며 `malloc()`으로 생성 시 0x20 크기의 chunk를 할당받는다.
 
 
 ## 0x01. Vulnerability
@@ -84,9 +84,9 @@ int deploy_task_1CE0()
 }
 ```
 
-In `deploy_task_1CE0()`, which conceptually delivers commands, the function checks if the global variable `task_running_40C8` is 0, and if so, changes it to 1 before creating a thread.
-Since this value is managed by a mutex to be reset to 0, `deploy_task_1CE0()` cannot be called again before aborting the task.
-
+명령을 전달하는 컨셉의 `deploy_task_1CE0()`에서 전역 변수 `task_running_40C8`의 값이 0인지 체크하고 맞으면 1로 바꾼 뒤 쓰레드를 생성한다.
+이 값을 다시 0으로 바꾸는 것은 mutex로 관리되기 때문에 `deploy_task_1CE0()`는 abort task를 하기 전에 다시 호출할 수 없다.
+ 
 ``` c
 void *__fastcall start_routine(void *a1)
 {
@@ -107,9 +107,9 @@ void *__fastcall start_routine(void *a1)
 }
 ```
 
-Inside the thread, it prints information about the last `bot` and calls the vulnerable function `free_vuln_1B80()`.
+쓰레드 내부에서는 마지막 `bot`의 정보를 출력해주고 취약한 `free_vuln_1B80()`을 호출해준다.
 
-Initially, I thought I needed to exploit something similar to a race condition using the fact that `bot_count_40CC` doesn't decrease before aborting the task, but thanks to another vulnerability described later, it wasn't necessary.
+처음에는 abort task를 하기 전에 `bot_count_40CC`가 감소하지 않으므로 이를 이용해서 race condition 비슷한 걸 해야하나 싶었는데, 후술할 다른 취약점 덕분에 필요가 없어졌다.
 
 ``` c
 void __fastcall free_vuln_1B80(int index)
@@ -128,8 +128,8 @@ void __fastcall free_vuln_1B80(int index)
 }
 ```
 
-Finally, `free_vuln_1B80()` frees `bot`, `bot->ip`, and `bot->info`, but doesn't initialize the pointer values, leaving them as dangling pointers.
-These pointers can be leveraged as UAF when combined with other vulnerabilities.
+최종적으로 `free_vuln_1B80()`에서는 `bot`, `bot->ip`와 `bot->info`를 해제하지만 포인터 값을 초기화하지는 않기 때문에 dangling pointer로 남게 된다.
+이 포인터를 다른 취약점과 연계해서 UAF로 활용할 수 있다.
 
 ### Improper Check
 ``` c
@@ -168,17 +168,17 @@ int update_bot_18D0()
 }
 ```
 
-In `update_bot_18D0()`, an `index` is received to select which `bot` to update.
-At this point, it should be compared with `bot_count_40CC` which stores the number of bots, but instead it checks if the value is greater than 4, which is the maximum number of bots.
-Therefore, as long as the pointer points to a valid address, it's possible to access a freed `bot`.
+`update_bot_18D0()`에서 업데이트할 `bot`을 고르기 위해 `index`를 입력받는다.
+이 때 `bot`의 개수를 저장하는 `bot_count_40CC`와 비교해야 하는데, 최댓값인 4보다 큰지를 확인한다.
+따라서 포인터가 유효한 주소를 가리키기만 한다면 해제된 `bot`에 접근이 가능하다.
 
 
 ## 0x02. Exploit
 ### Libc Leak
-Anyway, since there are no address values and the output section only exists in the thread function `start_routine()`, I came to think of info leak addresses through `bot->ip` or `bot->info`.
+어쨌던간에 아무런 주소값도 없고 출력부가 쓰레드 함수인 `start_routine()`에만 있기 때문에 `bot->ip`나 `bot->info`를 통해 leak을 해야겠다는 생각이 들었다.
 
-Between the two, `bot->info` is a large chunk of size 0x500, so when freed, it goes to the unsorted bin.
-Looking at the memory, it stores an address from the middle of libc's `main_arena` as follows.
+이 중 `bot->info`는 0x500짜리 큰 크기의 chunk이기 때문에 해제되면 unsorted bin으로 가게 된다.
+메모리를 보면 다음과 같이 libc의 `main_arena` 중간 주소를 저장하고 있다.
 
 ``` bash
 # before free
@@ -192,8 +192,8 @@ gef➤  x/4gx 0x00005555555592f0
 0x555555559300: 0x0000000000000000      0x0000000000000000
 ```
 
-This chunk's value isn't initialized after being freed and is returned again when allocating the next `bot->info`.
-Since the output section prints `info` with the `%s` format string, if we fill `\x00` appropriately when entering `info`, we can leak libc.
+이 chunk는 해제된 뒤 값이 초기화되지 않고 다음 `bot->info` 할당 때 다시 반환된다.
+출력부에서 `%s` 포맷 스트링으로 `info`를 출력해주니까 `\x00`을 잘 채워서 `info`를 입력해주면 libc leak이 가능하다.
 
 ``` python
     deploy_task(s)
@@ -212,8 +212,8 @@ Since the output section prints `info` with the `%s` format string, if we fill `
 ```
 
 ### Use After Free
-Now we need to leave a dangling pointer for UAF.
-Actually, all we need to do is create and free a `bot`.
+이제 UAF를 위해 dangling pointer를 남겨두어야 한다.
+사실 `bot` 생성 후 해제하기만 하면 바로 dangling pointer를 만들 수 있다.
 
 ``` python
     register_new_bot(s, b"BBBBBBBB", b"bbbbbbbb", b"1")
@@ -221,7 +221,7 @@ Actually, all we need to do is create and free a `bot`.
     abort_task(s)
 ```
 
-After executing the above code, checking the memory and fastbin shows the following.
+위 코드를 실행 후 메모리와 fastbin을 확인하면 다음과 같다.
 
 ``` bash
 gef➤  x/5gx 0x0000555555554000 + 0x40e0
@@ -241,7 +241,7 @@ Fastbins[idx=5, size=0x70] 0x00
 Fastbins[idx=6, size=0x80] 0x00
 ```
 
-The first `bot` was allocated at `0x5555555592a0` and then freed, resulting in a chunk in the fastbin of size 0x30.
+첫 번째 `bot`이 `0x5555555592a0`에 할당되었다가 해제되었으며, 그로 인해 크기가 0x30인 fastbin에 chunk가 들어가 있다.
 
 ``` c
 int send_command_1A70()
@@ -273,14 +273,13 @@ int send_command_1A70()
 }
 ```
 
-Conveniently, `send_command_1A70()` allocates a chunk of size 0x20, so it receives the chunk from the 0x30 fastbin, and we can also write content to it.
-Therefore, we can modify the address values that `bot->ip` or `bot->info` points to through `send_command_1A70()`, then create AAW (Arbitrary Address Write) with `update_bot_18D0()`.
+마침 `send_command_1A70()`에서 0x20짜리 chunk를 할당받기 때문에 0x30 fastbin에서 chunk를 받아오고, 내용도 쓸 수 있다.
+따라서 `send_command_1A70()`를 통해 `bot->ip`나 `bot->info`가 가리키는 주소값을 변조한 뒤 `update_bot_18D0()`으로 AAW를 만들 수 있다.
 
-Now we need to think about how to achieve RIP control using AAW.
-Since there's no leak other than libc leak and we can write a large amount of content of size 0x500, I decided to use FSOP.
+이제 AAW를 이용해 어떻게 RIP control을 할지 고민해야하는데, libc leak 말고 다른 leak이 없고 0x500이라는 큰 크기의 내용을 쓸 수 있으므로 FSOP를 이용하기로 했다.
 
 ### FSOP
-First, as mentioned earlier, we modify the content of the `bot` structure using `send_command_1A70()`.
+먼저 앞서 언급한대로 `send_command_1A70()`를 이용해 `bot` 구조체의 내용을 변조한다.
 
 ``` python
     payload = p64(buf)                # bot->ip
@@ -289,10 +288,9 @@ First, as mentioned earlier, we modify the content of the `bot` structure using 
     send_command(s, b"1", payload)
 ```
 
-I put the address of any meaningless region in the libc area into `buf` since it's not needed for exploitation.
-Since `bot->info` is pointing to `stdout`, we can modify the content of `stdout` when updating `bot->info`.
+`buf`는 exploit에서 필요하지 않으므로 libc 영역 중 무의미한 아무 영역의 주소를 넣었다. `bot->info`가 `stdout`을 가리키고 있으므로 `bot->info`를 update할 때 `stdout`의 내용을 변조할 수 있다.
 
-Since we can overwrite up to the `vtable` pointer, which is the last field of `stdout` (over 0xe0), we can use the following FSOP payload.
+`stdout`의 마지막 필드인 `vtable` 포인터까지 덮을 수 있으므로(0xe0 이상) 다음 FSOP payload를 사용할 수 있다.
 
 ``` python
     stdout_lock = lib.sym.__nptl_last_event - 0x48
@@ -308,7 +306,7 @@ Since we can overwrite up to the `vtable` pointer, which is the last field of `s
     update_bot(s, b"0", b"CCCCCCCC", payload)
 ```
 
-After this, when encountering `puts` or `printf`, `_IO_wfile_overflow` will be called and execute a shell.
+이후 `puts`나 `printf`를 만나면 `_IO_wfile_overflow`가 호출되며 쉘을 실행시킬 수 있다.
 
 
 ## 0x03. Payload
