@@ -4,7 +4,7 @@ date = "2024-07-19"
 description = "SECUINSIDE CTF 2013 pwnable challenge"
 
 [taxonomies]
-tags = ["ctf", "pwnable", "bof", "byte by byte attack", "fsb", "syslog"]
+tags = ["ctf", "pwnable", "bof", "byte by byte attack", "fsb", "syslog", "got overwrite"]
 +++
 
 ## 0x00. Introduction
@@ -256,7 +256,7 @@ By the way, the idea of overwriting `sprintf()` with `system()` came from the fa
 ```
 
 The `password` must be in the first argument `fmt_0804A0C0`, but fortunately, while `memcmp()` only compares 16 bytes, the input receives 20 bytes, creating 4 bytes of free space.
-Therefore, if we add `;sh` after the key, when the got overwrite succeeds, the function executes as follows:
+Therefore, if we add `;sh` after the key, when the GOT overwrite succeeds, the function executes as follows:
 
 ``` c
   // sprintf(fmt_0804A0C0, "./lock UNLOCK %d %d", floor_804A4C0, room_804A0A0);

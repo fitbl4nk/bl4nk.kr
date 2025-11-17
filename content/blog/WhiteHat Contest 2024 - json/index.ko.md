@@ -4,7 +4,7 @@ date = "2024-11-23"
 description = "WhiteHat Contest 2024 pwnable challenge"
 
 [taxonomies]
-tags = ["ctf", "pwnable", "injection", "bof", "rop", "partial function reuse"]
+tags = ["ctf", "pwnable", "injection", "bof", "rop", "partial function reuse", "got overwrite"]
 +++
 
 ## 0x00. Introduction

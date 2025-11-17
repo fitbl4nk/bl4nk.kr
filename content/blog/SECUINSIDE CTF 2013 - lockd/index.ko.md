@@ -4,7 +4,7 @@ date = "2024-07-19"
 description = "SECUINSIDE CTF 2013 pwnable challenge"
 
 [taxonomies]
-tags = ["ctf", "pwnable", "bof", "byte by byte attack", "fsb", "syslog"]
+tags = ["ctf", "pwnable", "bof", "byte by byte attack", "fsb", "syslog", "got overwrite"]
 +++
 
 ## 0x00. Introduction
@@ -256,7 +256,7 @@ ASLR이 켜진 경우 `0xff8ca714`가 `0xff8caec4`를 가리키고 있어 `0xff8
 ```
 
 첫 번째 인자인 `fmt_0804A0C0`에 `password`가 담겨있어야 하는데, 다행히 `memcmp()`를 16바이트만 하는 반면 입력은 20바이트를 받으므로 4바이트의 여유 공간이 생긴다.
-따라서 key 뒤에 `;sh`를 넣어주면 got overwrite가 성공했을 때 다음과 같이 함수가 실행된다.
+따라서 key 뒤에 `;sh`를 넣어주면 GOT overwrite가 성공했을 때 다음과 같이 함수가 실행된다.
 
 ``` c
   // sprintf(fmt_0804A0C0, "./lock UNLOCK %d %d", floor_804A4C0, room_804A0A0);
