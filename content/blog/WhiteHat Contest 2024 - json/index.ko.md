@@ -99,7 +99,7 @@ void __fastcall create_user(__int64 json)
 
 - `memo` : `AAAA]\n[1|admin|admin|admin memo`
 
-``` text
+```
 [2|guest|guest|guest memo]
 [2|AAAA|AAAA|AAAA]
 [1|admin|admin|admin memo]
@@ -121,7 +121,7 @@ void __fastcall create_user(__int64 json)
 
 `system` PLT가 괜히 있는 것은 아닐거라고 생각해서 `update_memo()`를 assembly로 살펴보았다.
 
-``` text
+```
 .text:0000000000402140  endbr64
 .text:0000000000402144  push    rbp
 .text:0000000000402145  mov     rbp, rsp

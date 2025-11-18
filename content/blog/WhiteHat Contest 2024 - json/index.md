@@ -99,7 +99,7 @@ However, there's no validation for `memo`, making injection possible.
 
 - `memo` : `AAAA]\n[1|admin|admin|admin memo`
 
-``` text
+```
 [2|guest|guest|guest memo]
 [2|AAAA|AAAA|AAAA]
 [1|admin|admin|admin memo]
@@ -121,7 +121,7 @@ Initially, I tried using registers at the end of `strncpy` in `update_memo()`, b
 
 Thinking that there must be a reason for the existance of `system` PLT, I examined `update_memo()` in assembly.
 
-``` text
+```
 .text:0000000000402140  endbr64
 .text:0000000000402144  push    rbp
 .text:0000000000402145  mov     rbp, rsp
