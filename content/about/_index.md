@@ -9,7 +9,7 @@ Hi, I’m bl4nk, a cybersecurity specialist currently serving as a captain in th
 ## Education
 - 2020 ~ Present : **Korea University**
   - Ph.D. candidate in Department of Information Security
-- 2017 ~ 2018 : **Best of the Best**(Next-Generation Security Leader Training Program)
+- 2017 ~ 2018 : **Best of the Best** (Next-Generation Security Leader Training Program)
   - Vulnerability Analysis track
 - 2015 ~ 2019 : **Korea University**
   - Bachelor's degree in Department of Cyber Defense
@@ -23,6 +23,8 @@ Hi, I’m bl4nk, a cybersecurity specialist currently serving as a captain in th
   - Conducted simulations of real-world cyberattacks to evaluate security levels
 
 ## Award
+- 2025 **White Hat Contest** as team "BSBP"
+  - 3rd place in the Military division
 - 2024 **White Hat Contest** as team "Hasan"
   - 2nd place in the Military division
 
