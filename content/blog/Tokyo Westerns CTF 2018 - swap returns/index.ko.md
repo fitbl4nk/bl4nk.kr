@@ -6,6 +6,7 @@ description = "Tokyo Westerns CTF 2018 pwnable challenge"
 [taxonomies]
 tags = ["ctf", "pwnable", "fsb", "got overwrite"]
 +++
+
 ## 0x00. Introduction
 
 ``` bash
@@ -46,6 +47,7 @@ int __fastcall __noreturn main()
 값을 두 개 입력받고, 그 값이 가리키는 값을 서로 바꿔준다.
 
 쉽게 말하면 두 주소를 입력받아 주소에 저장된 값을 서로 바꿔준다.
+
 
 ## 0x01. Vulnerability
 

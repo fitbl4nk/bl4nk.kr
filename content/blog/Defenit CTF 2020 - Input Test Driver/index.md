@@ -277,6 +277,7 @@ The exploitation flow:
 
 Since we can only control RIP by changing function pointers, we can deliver a ROP payload using an `xchg eax, esp` gadget and fake stack.
 
+
 ## 0x03. Payload
 ``` c
 #include <stdio.h>

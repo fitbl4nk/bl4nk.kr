@@ -247,6 +247,7 @@ def nnnnur(data):
     return res
 ```
 
+
 ## 0x03. Payload
 ``` python
 sbox = [

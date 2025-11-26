@@ -263,6 +263,7 @@ Actually, many unnecessary payloads are sent, so it's not efficient, but I got g
 arbitrary_write(s, malloc_hook, one_gadget)
 ```
 
+
 ## 0x03. Payload
 ``` python
 from pwn import *

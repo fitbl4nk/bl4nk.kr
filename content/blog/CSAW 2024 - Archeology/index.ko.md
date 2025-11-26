@@ -111,6 +111,7 @@ int __fastcall main(int argc, const char **argv, const char **envp)
 
 따라서 목표는 어떤 plaintext를 입력해야 `message.txt`에 쓰여진 내용이 출력되는지 역산하는 것이다.
 
+
 ## 0x02. Exploit
 Ciphertext가 생성되는 과정을 pseudocode로 나타내면 다음과 같다.
 
