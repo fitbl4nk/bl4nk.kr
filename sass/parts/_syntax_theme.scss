@@ -135,13 +135,13 @@
 
     &.z-name.z-function {
         color: var(--blue);
-        font-style: italic;
+        // font-style: italic;
     }
 }
 
 .z-variable.z-function {
     color: var(--blue);
-    font-style: italic;
+    // font-style: italic;
 }
 
 .z-entity.z-name.z-function.z-preprocessor,
@@ -177,7 +177,7 @@
     &.z-type,
     &.z-class {
         color: var(--blue);
-        font-style: italic;
+        // font-style: italic;
     }
 }
 
