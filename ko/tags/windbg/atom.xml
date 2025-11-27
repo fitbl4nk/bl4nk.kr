@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="utf-8"?>
+<?xml-stylesheet href="https://bl4nk.kr/feed_style.xsl" type="text/xsl"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xml:lang="ko">
+    <tabi:metadata xmlns:tabi="https://github.com/welpo/tabi">
+        <tabi:base_url>https:&#x2F;&#x2F;bl4nk.kr</tabi:base_url>
+        <tabi:separator>
+            •
+        </tabi:separator>
+        <tabi:about_feeds>이것은 웹 피드이며, Atom 피드로도 알려져 있습니다. 주소 표시 줄의 URL을 뉴스 리더로 복사하여 구독하세요. About Feeds를 방문하여 자세히 알아보고 시작하세요. 무료입니다.</tabi:about_feeds>
+        <tabi:visit_the_site>웹사이트 방문하기</tabi:visit_the_site>
+        <tabi:recent_posts>최근 게시물</tabi:recent_posts>
+        <tabi:last_updated_on>$DATE에 업데이트됨</tabi:last_updated_on>
+        <tabi:default_theme></tabi:default_theme>
+        <tabi:post_listing_date>date</tabi:post_listing_date>
+        <tabi:current_section>windbg</tabi:current_section>
+    </tabi:metadata><link rel="extra-stylesheet" href="https://bl4nk.kr/skins/lavender.css?h=31ee0a710ed660d122f6" /><title>~/bl4nk - windbg</title>
+        <subtitle>fill in the bl4nk</subtitle>
+    <link href="https://bl4nk.kr/ko/tags/windbg/atom.xml" rel="self" type="application/atom+xml"/>
+    <link href="https://bl4nk.kr/ko/tags/windbg/" rel="alternate" type="text/html"/>
+    <generator uri="https://www.getzola.org/">Zola</generator>
+    <updated>2025-04-25T00:00:00+00:00</updated>
+    <id>https://bl4nk.kr/ko/tags/windbg/atom.xml</id><entry xml:lang="ko">
+        <title>윈도우 커널 디버깅</title>
+        <published>2025-04-25T00:00:00+00:00</published>
+        <updated>2025-04-25T00:00:00+00:00</updated>
+        <author>
+            <name>bl4nk</name>
+        </author>
+        <link rel="alternate" href="https://bl4nk.kr/ko/blog/windows-kernel-debugging/" type="text/html"/>
+        <id>https://bl4nk.kr/ko/blog/windows-kernel-debugging/</id>
+        
+            <content type="html">&lt;h2 id=&quot;0x00-introduction&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#0x00-introduction&quot; aria-label=&quot;Anchor link for: 0x00-introduction&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;&#x2F;span&gt;&lt;&#x2F;a&gt;
+0x00. Introduction&lt;&#x2F;h2&gt;
+&lt;p&gt;Windows 커널을 분석하기 위한 환경을 구축하고 유용한 명령어를 정리한 포스트이다.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;0x01-setup&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#0x01-setup&quot; aria-label=&quot;Anchor link for: 0x01-setup&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;&#x2F;span&gt;&lt;&#x2F;a&gt;
+0x01. Setup&lt;&#x2F;h2&gt;
+&lt;h3 id=&quot;host-debugger&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#host-debugger&quot; aria-label=&quot;Anchor link for: host-debugger&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;&#x2F;span&gt;&lt;&#x2F;a&gt;
+Host (Debugger)&lt;&#x2F;h3&gt;
+&lt;p&gt;예전에는 Windows SDK, Virtual KD 등 편의성을 위해 설치 과정이 복잡했었는데, 이제는 WinDbg가 정식 출시되며 많이 간단해졌다.
+Microsoft Store에 가서 WinDbg를 설치하고 실행하면 끝이다.&lt;&#x2F;p&gt;
+&lt;p&gt;상단 메뉴의 File -&amp;gt; Start Debugging -&amp;gt; Attach to kernel에서 COM을 선택한 뒤 다음과 같이 설정한다.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;img src=&quot;https:&#x2F;&#x2F;bl4nk.kr&#x2F;ko&#x2F;blog&#x2F;windows-kernel-debugging&#x2F;image.png&quot; alt=&quot;host&quot; &#x2F;&gt;&lt;&#x2F;p&gt;
+&lt;p&gt;설정을 완료하고 오른쪽 하단의 “OK“를 누르면 디버깅 대기 상태에 들어간다.&lt;&#x2F;p&gt;
+&lt;h3 id=&quot;guest-debuggee&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#guest-debuggee&quot; aria-label=&quot;Anchor link for: guest-debuggee&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;&#x2F;span&gt;&lt;&#x2F;a&gt;
+Guest (Debuggee)&lt;&#x2F;h3&gt;
+&lt;p&gt;디버깅 대상은 다양한 프로그램을 통해 구축할 수 있는데 이번 포스트에서는 VMware를 통해 구축한 경우 설정 방법에 대해 기술한다.&lt;&#x2F;p&gt;
+&lt;p&gt;먼저 대상 vm을 켜고 powershell을 관리자 권한으로 실행한 후 다음 명령을 실행한다.&lt;&#x2F;p&gt;
+&lt;pre class=&quot;z-code&quot;&gt;&lt;code&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;bcdedit &#x2F;debug on
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;bcdedit &#x2F;dbgsettings serial debugport:1 baudrate:115200
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;이후 vm을 종료하고 상단 메뉴에서 VM -&amp;gt; Settings -&amp;gt; Add를 선택해서 Serial Port를 추가한다.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;img src=&quot;https:&#x2F;&#x2F;bl4nk.kr&#x2F;ko&#x2F;blog&#x2F;windows-kernel-debugging&#x2F;image-1.png&quot; alt=&quot;guest-1&quot; &#x2F;&gt;&lt;&#x2F;p&gt;
+&lt;p&gt;추가된 Serial Port를 다음과 같이 설정한다.
+참고로 “The other end is an application“이 아닌 “The other end is a virtual machine“을 선택해도 연결은 되는 것 같다.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;img src=&quot;https:&#x2F;&#x2F;bl4nk.kr&#x2F;ko&#x2F;blog&#x2F;windows-kernel-debugging&#x2F;image-2.png&quot; alt=&quot;guest-2&quot; &#x2F;&gt;&lt;&#x2F;p&gt;
+&lt;p&gt;마지막으로 대상 vm을 실행해주면 host와 연결된다.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;0x02-commands&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#0x02-commands&quot; aria-label=&quot;Anchor link for: 0x02-commands&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;&#x2F;span&gt;&lt;&#x2F;a&gt;
+0x02. Commands&lt;&#x2F;h2&gt;
+&lt;h3 id=&quot;modules&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#modules&quot; aria-label=&quot;Anchor link for: modules&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;&#x2F;span&gt;&lt;&#x2F;a&gt;
+Modules&lt;&#x2F;h3&gt;
+&lt;h4 id=&quot;lm-list-modules&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#lm-list-modules&quot; aria-label=&quot;Anchor link for: lm-list-modules&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;&#x2F;span&gt;&lt;&#x2F;a&gt;
+&lt;code&gt;lm&lt;&#x2F;code&gt; (List Modules)&lt;&#x2F;h4&gt;
+&lt;p&gt;로드된 모듈을 출력하거나 특정 모듈의 정보를 확인할 수 있다.&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;windbg&quot; class=&quot;language-windbg z-code&quot;&gt;&lt;code class=&quot;language-windbg&quot; data-lang=&quot;windbg&quot;&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;kd&amp;gt; lm
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;kd&amp;gt; lm m fltmgr
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;kd&amp;gt; lm Dvm fltmgr
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;참고로 kernel mode 영역은 &lt;code&gt;fffff800&#x27;00000000&lt;&#x2F;code&gt;같이 높은 주소에 로드된다.&lt;&#x2F;p&gt;
+&lt;h4 id=&quot;x-examine-symbols&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#x-examine-symbols&quot; aria-label=&quot;Anchor link for: x-examine-symbols&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;&#x2F;span&gt;&lt;&#x2F;a&gt;
+&lt;code&gt;x&lt;&#x2F;code&gt; (eXamine symbols)&lt;&#x2F;h4&gt;
+&lt;p&gt;심볼을 탐색하거나 특정 심볼을 찾는다.&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;windbg&quot; class=&quot;language-windbg z-code&quot;&gt;&lt;code class=&quot;language-windbg&quot; data-lang=&quot;windbg&quot;&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;kd&amp;gt; x win32k!
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;kd&amp;gt; x win32k!vStr*
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;h3 id=&quot;symbols&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#symbols&quot; aria-label=&quot;Anchor link for: symbols&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;&#x2F;span&gt;&lt;&#x2F;a&gt;
+Symbols&lt;&#x2F;h3&gt;
+&lt;h4 id=&quot;sym-noisy-noisy-symbol-loading&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#sym-noisy-noisy-symbol-loading&quot; aria-label=&quot;Anchor link for: sym-noisy-noisy-symbol-loading&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;&#x2F;span&gt;&lt;&#x2F;a&gt;
+&lt;code&gt;!sym noisy&lt;&#x2F;code&gt; (Noisy symbol loading)&lt;&#x2F;h4&gt;
+&lt;p&gt;심볼 로딩 과정을 자세하게 출력한다. 로딩 관련 문제가 있을 때 디버깅하기 좋다.&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;windbg&quot; class=&quot;language-windbg z-code&quot;&gt;&lt;code class=&quot;language-windbg&quot; data-lang=&quot;windbg&quot;&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;kd&amp;gt; !sym noisy 
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;h4 id=&quot;sympath-set-symbol-path&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#sympath-set-symbol-path&quot; aria-label=&quot;Anchor link for: sympath-set-symbol-path&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;&#x2F;span&gt;&lt;&#x2F;a&gt;
+&lt;code&gt;!sympath&lt;&#x2F;code&gt; (Set symbol path)&lt;&#x2F;h4&gt;
+&lt;p&gt;심볼 서버 또는 로컬에 심볼 파일들이 저장된 경로를 설정한다.&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;windbg&quot; class=&quot;language-windbg z-code&quot;&gt;&lt;code class=&quot;language-windbg&quot; data-lang=&quot;windbg&quot;&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;kd&amp;gt; !sympath SRV*C:\symbols*https:&#x2F;&#x2F;msdl.microsoft.com&#x2F;download&#x2F;symbols
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;kd&amp;gt; !sympath C:\symbols 
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;h4 id=&quot;reload-reload-symbols&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#reload-reload-symbols&quot; aria-label=&quot;Anchor link for: reload-reload-symbols&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;&#x2F;span&gt;&lt;&#x2F;a&gt;
+&lt;code&gt;.reload&lt;&#x2F;code&gt; (Reload symbols)&lt;&#x2F;h4&gt;
+&lt;p&gt;심볼을 다시 로드한다. &lt;code&gt;&#x2F;f&lt;&#x2F;code&gt; 옵션을 주면 강제로 심볼을 로드한다.&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;windbg&quot; class=&quot;language-windbg z-code&quot;&gt;&lt;code class=&quot;language-windbg&quot; data-lang=&quot;windbg&quot;&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;kd&amp;gt; .reload
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;kd&amp;gt; .reload &#x2F;f CLFS
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;h3 id=&quot;memory&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#memory&quot; aria-label=&quot;Anchor link for: memory&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;&#x2F;span&gt;&lt;&#x2F;a&gt;
+Memory&lt;&#x2F;h3&gt;
+&lt;h4 id=&quot;db-dw-dd-dq-display-memory&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#db-dw-dd-dq-display-memory&quot; aria-label=&quot;Anchor link for: db-dw-dd-dq-display-memory&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;&#x2F;span&gt;&lt;&#x2F;a&gt;
+&lt;code&gt;db&lt;&#x2F;code&gt; &lt;code&gt;dw&lt;&#x2F;code&gt; &lt;code&gt;dd&lt;&#x2F;code&gt; &lt;code&gt;dq&lt;&#x2F;code&gt; (Display memory)&lt;&#x2F;h4&gt;
+&lt;p&gt;메모리를 각각 byte, word, double word, quad word 단위로 출력해준다.
+뒤에 &lt;code&gt;L[Length]&lt;&#x2F;code&gt;를 입력해서 출력할 개수를 지정하거나, 출력할 마지막 주소를 입력해서 범위를 지정할 수 있다.
+혹은 레지스터 이름을 입력해서 레지스터에 저장된 값을 읽어와 사용할 수도 있다.&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;windbg&quot; class=&quot;language-windbg z-code&quot;&gt;&lt;code class=&quot;language-windbg&quot; data-lang=&quot;windbg&quot;&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;kd&amp;gt; db [Address]
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;kd&amp;gt; dw [Address] L[Length]
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;kd&amp;gt; dd [Address] [Address]
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;kd&amp;gt; dq rsp
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;h4 id=&quot;ds-du-dc-display-string&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#ds-du-dc-display-string&quot; aria-label=&quot;Anchor link for: ds-du-dc-display-string&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;&#x2F;span&gt;&lt;&#x2F;a&gt;
+&lt;code&gt;ds&lt;&#x2F;code&gt; &lt;code&gt;du&lt;&#x2F;code&gt; &lt;code&gt;dc&lt;&#x2F;code&gt; (Display string)&lt;&#x2F;h4&gt;
+&lt;p&gt;메모리를 각각 ascii, unicode 문자열로 출력해준다.
+&lt;code&gt;dc&lt;&#x2F;code&gt;의 경우 hex 값과 문자열을 동시에 출력해준다.&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;windbg&quot; class=&quot;language-windbg z-code&quot;&gt;&lt;code class=&quot;language-windbg&quot; data-lang=&quot;windbg&quot;&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;kd&amp;gt; ds [Address]
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;kd&amp;gt; du [Address]
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;h4 id=&quot;dps-display-pointers-and-symbols&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#dps-display-pointers-and-symbols&quot; aria-label=&quot;Anchor link for: dps-display-pointers-and-symbols&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;&#x2F;span&gt;&lt;&#x2F;a&gt;
+&lt;code&gt;dps&lt;&#x2F;code&gt; (Display Pointers and Symbols)&lt;&#x2F;h4&gt;
+&lt;p&gt;메모리에 저장된 포인터를 심볼 정볼르 기반으로 해석해서 출력해준다.&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;windbg&quot; class=&quot;language-windbg z-code&quot;&gt;&lt;code class=&quot;language-windbg&quot; data-lang=&quot;windbg&quot;&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;kd&amp;gt; dps [Address]
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;h4 id=&quot;u-ub-uf-unassemble&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#u-ub-uf-unassemble&quot; aria-label=&quot;Anchor link for: u-ub-uf-unassemble&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;&#x2F;span&gt;&lt;&#x2F;a&gt;
+&lt;code&gt;u&lt;&#x2F;code&gt; &lt;code&gt;ub&lt;&#x2F;code&gt; &lt;code&gt;uf&lt;&#x2F;code&gt; (Unassemble)&lt;&#x2F;h4&gt;
+&lt;p&gt;메모리 안에 있는 명령어를 어셈블리로 해석해서 출력해준다.
+기본적인 &lt;code&gt;u&lt;&#x2F;code&gt;를 어셈블리 코드를 입력한 주소의 역방향으로 출력해주는 &lt;code&gt;ub&lt;&#x2F;code&gt;와 같이 쓰면 앞뒤 instruction을 한번에 볼 수 있어서 편리하다.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;code&gt;uf&lt;&#x2F;code&gt;는 함수 전체를 출력해주는데, 함수의 처음이 아니라 중간 아무 위치나 입력해도 된다. 단, 심볼이 잘 로딩되어 있어야 한다.&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;windbg&quot; class=&quot;language-windbg z-code&quot;&gt;&lt;code class=&quot;language-windbg&quot; data-lang=&quot;windbg&quot;&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;kd&amp;gt; u rip
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;kd&amp;gt; ub rip
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;kd&amp;gt; uf [Address]
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;h3 id=&quot;information&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#information&quot; aria-label=&quot;Anchor link for: information&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;&#x2F;span&gt;&lt;&#x2F;a&gt;
+Information&lt;&#x2F;h3&gt;
+&lt;h4 id=&quot;analyze-v-analyze-crash-dump&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#analyze-v-analyze-crash-dump&quot; aria-label=&quot;Anchor link for: analyze-v-analyze-crash-dump&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;&#x2F;span&gt;&lt;&#x2F;a&gt;
+&lt;code&gt;analyze -v&lt;&#x2F;code&gt; (Analyze crash dump)&lt;&#x2F;h4&gt;
+&lt;p&gt;Crash가 발생했을 때 대략적인 원인과 레지스터들의 상태 등 다양한 정보를 출력해준다.&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;windbg&quot; class=&quot;language-windbg z-code&quot;&gt;&lt;code class=&quot;language-windbg&quot; data-lang=&quot;windbg&quot;&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;kd&amp;gt; !analyze -v
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;h4 id=&quot;k-kv-stack-trace&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#k-kv-stack-trace&quot; aria-label=&quot;Anchor link for: k-kv-stack-trace&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;&#x2F;span&gt;&lt;&#x2F;a&gt;
+&lt;code&gt;k&lt;&#x2F;code&gt; &lt;code&gt;kv&lt;&#x2F;code&gt; (Stack trace)&lt;&#x2F;h4&gt;
+&lt;p&gt;현재 쓰레드의 call stack을 출력한다. &lt;code&gt;kv&lt;&#x2F;code&gt; 명령어의 경우 전달된 인자의 값을 함께 출력해준다.&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;windbg&quot; class=&quot;language-windbg z-code&quot;&gt;&lt;code class=&quot;language-windbg&quot; data-lang=&quot;windbg&quot;&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;kd&amp;gt; k
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;kd&amp;gt; kv 
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;h4 id=&quot;process-thread-process-thread-information&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#process-thread-process-thread-information&quot; aria-label=&quot;Anchor link for: process-thread-process-thread-information&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;&#x2F;span&gt;&lt;&#x2F;a&gt;
+&lt;code&gt;!process&lt;&#x2F;code&gt; &lt;code&gt;!thread&lt;&#x2F;code&gt; (Process &#x2F; Thread information)&lt;&#x2F;h4&gt;
+&lt;p&gt;프로세스의 정보를 출력해준다. &lt;code&gt;!process&lt;&#x2F;code&gt; 단독으로 사용했을 때 현재 프로세스의 정보를 자세하게 출력해주고, 뒤에 &lt;code&gt;0 0&lt;&#x2F;code&gt;을 추가하면 모든 프로세스의 정보를 간단하게 출력해준다. 특정 프로세스의 정보를 확인하고 싶을 때는 해당 프로세스의 주소를 입력해주면 된다.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;code&gt;!thread&lt;&#x2F;code&gt;는 쓰레드의 정보를 출력해주는데, 단독으로 사용했을 때 현재 쓰레드의 정보를 출력해주고, 특정 쓰레드의 주소를 입력하면 해당 쓰레드의 정보를 출력해준다.&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;windbg&quot; class=&quot;language-windbg z-code&quot;&gt;&lt;code class=&quot;language-windbg&quot; data-lang=&quot;windbg&quot;&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;kd&amp;gt; !process
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;kd&amp;gt; !process 0 0
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;kd&amp;gt; !process [Address]
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;kd&amp;gt; !thread
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;kd&amp;gt; !thread [Address]
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;h3 id=&quot;debug&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#debug&quot; aria-label=&quot;Anchor link for: debug&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;&#x2F;span&gt;&lt;&#x2F;a&gt;
+Debug&lt;&#x2F;h3&gt;
+&lt;h4 id=&quot;bp-ba-break-point&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#bp-ba-break-point&quot; aria-label=&quot;Anchor link for: bp-ba-break-point&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;&#x2F;span&gt;&lt;&#x2F;a&gt;
+&lt;code&gt;bp&lt;&#x2F;code&gt; &lt;code&gt;ba&lt;&#x2F;code&gt; (Break Point)&lt;&#x2F;h4&gt;
+&lt;p&gt;지정한 주소나 심볼을 실행할 때 흐름을 멈추는 명령이다. &lt;code&gt;ba&lt;&#x2F;code&gt; 명령어를 이용하여 특정 메모리를 읽기 &#x2F; 쓰기 &#x2F; 실행할 때 멈추도록 할 수도 있다.&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;windbg&quot; class=&quot;language-windbg z-code&quot;&gt;&lt;code class=&quot;language-windbg&quot; data-lang=&quot;windbg&quot;&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;kd&amp;gt; bp 0x401000
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;kd&amp;gt; bp ntdll!NtCreateFile
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;kd&amp;gt; ba [r&#x2F;w&#x2F;x&#x2F;rw][Length] [Address]
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;h4 id=&quot;p-t-pt-g-pc-flow-control&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#p-t-pt-g-pc-flow-control&quot; aria-label=&quot;Anchor link for: p-t-pt-g-pc-flow-control&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;&#x2F;span&gt;&lt;&#x2F;a&gt;
+&lt;code&gt;p&lt;&#x2F;code&gt; &lt;code&gt;t&lt;&#x2F;code&gt; &lt;code&gt;pt&lt;&#x2F;code&gt; &lt;code&gt;g&lt;&#x2F;code&gt; &lt;code&gt;pc&lt;&#x2F;code&gt; (Flow control)&lt;&#x2F;h4&gt;
+&lt;p&gt;다음 명령어를 실행하는 &lt;code&gt;p&lt;&#x2F;code&gt;(&lt;code&gt;ni&lt;&#x2F;code&gt;), 다음 명령어를 실행하되 함수라면 내부로 진입하는 &lt;code&gt;t&lt;&#x2F;code&gt;(&lt;code&gt;ni&lt;&#x2F;code&gt;), 함수가 끝날 때까지 실행하는 &lt;code&gt;pt&lt;&#x2F;code&gt;, 다음 브레이크 포인트까지 실행하는 &lt;code&gt;g&lt;&#x2F;code&gt;, 특정 주소까지 실행하는 &lt;code&gt;pc&lt;&#x2F;code&gt;등 다양한 디버깅 흐름 제어 명령어들이 있다.&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;windbg&quot; class=&quot;language-windbg z-code&quot;&gt;&lt;code class=&quot;language-windbg&quot; data-lang=&quot;windbg&quot;&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;kd&amp;gt; p
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;kd&amp;gt; t
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;kd&amp;gt; pt
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;kd&amp;gt; g
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;kd&amp;gt; pc [Address]
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+</content>
+        <summary type="html">WinDbg + VMware를 이용한 윈도우 커널 디버깅</summary>
+        </entry>
+</feed>
