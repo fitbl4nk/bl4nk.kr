@@ -1,7 +1,7 @@
 +++
-title = "IDA MCP Server를 이용해 LLM 연결하기 (feat. Gemini CLI)"
+title = "가상머신에 IDA MCP Server 구축하고 LLM 연결하기 (feat. Gemini CLI)"
 date = "2025-12-10"
-description = "Guest(IDA)와 Host(Gemini CLI) 바이너리 분석 자동화"
+description = "게스트(IDA)와 호스트(Gemini CLI) 분리를 통한 효율적인 병행 분석 환경 구축"
 
 [taxonomies]
 tags = ["tools", "pwnable", "reversing", "ida", "mcp", "llm"]
@@ -13,7 +13,7 @@ MCP는 Model Context Protocol으로 AI가 다른 시스템과 통신하기 위�
 비유적으로는 **AI를 위한 USB-C 포트**라는 표현이 자주 쓰인다.
 
 hex-rays 공식 플러그인도 있지만 star가 더 많은 [github](https://github.com/mrexodia/ida-pro-mcp)을 기준으로 작성했다.
-또한 agent를 돌려놓고 나도 따로 분석하기 편한 환경을 위해 가상머신 내부 환경을 기준으로 작성했다.
+또한 agent에게 작업을 맡겨두고, 나 또한 자유롭게 분석을 병행할 수 있도록 가상머신을 사용하여 MCP 서버를 구축하는 환경을 기준으로 작성했다.
 
 
 ## 0x01. Install
@@ -145,7 +145,7 @@ Configured MCP servers:
 
 
 ## 0x02. Prompt Engineering
-CTF를 준비할 때에는 미처 확인하지 못한 부분인데, 더 나은 분석 결과를 위해 프롬프트가 권장된다.
+CTF를 준비할 때에는 미처 확인하지 못한 부분인데, 당연하게도 더 나은 분석 결과를 위해 프롬프트가 권장된다.
 기본적으로 제시된 프롬프트는 다음과 같다.
 
 ```
@@ -193,5 +193,5 @@ Use the following systematic methodology:
    - Produce comprehensive RE/*.md files with your findings
    - Document the steps taken and methodology used
    - When asked by the user, ensure accuracy over previous analysis file
-   - Organize findings in a way that serves the project goals outlined in AGENTS.md or CLAUDE.md
-```
+      - Organize findings in a way that serves the project goals outlined in AGENTS.md or CLAUDE.md
+   ```
