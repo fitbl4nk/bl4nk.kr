@@ -6,7 +6,14 @@
             {{ section.content | safe }}
         </section>
     </div>
-    {%- if header.img -%}
+    {%- if header.img_light and header.img_dark -%}
+        {%- set img_light_path = get_url(path=header.img_light, trailing_slash=false) | safe -%}
+        {%- set img_dark_path = get_url(path=header.img_dark, trailing_slash=false) | safe -%}
+        <div id="image-container-home">
+            <img alt="{{ header.img_alt | default(value="the owner") }}" class="banner-home-img img-light" src="{{ img_light_path }}" />
+            <img alt="{{ header.img_alt | default(value="the owner") }}" class="banner-home-img img-dark" src="{{ img_dark_path }}" />
+        </div>
+    {%- elif header.img -%}
         {%- if header.img is containing("$BASE_URL") -%}
             {# Conversion no longer supported in favour of proper path. #}
             {{ throw(message="ERROR: The image path for the header should not contain '$BASE_URL'. Please remove it and use the proper image path.") }}
