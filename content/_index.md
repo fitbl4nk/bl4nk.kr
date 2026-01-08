@@ -7,4 +7,4 @@ section_path = "blog/_index.md"
 max_posts = 5
 +++
 
-I upload write-ups mostly.
+I post write-ups mostly.
