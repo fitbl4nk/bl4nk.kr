@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="utf-8"?>
+<?xml-stylesheet href="https://bl4nk.kr/feed_style.xsl" type="text/xsl"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xml:lang="ko">
+    <tabi:metadata xmlns:tabi="https://github.com/welpo/tabi">
+        <tabi:base_url>https:&#x2F;&#x2F;bl4nk.kr</tabi:base_url>
+        <tabi:separator>
+            •
+        </tabi:separator>
+        <tabi:about_feeds>이것은 웹 피드이며, Atom 피드로도 알려져 있습니다. 주소 표시 줄의 URL을 뉴스 리더로 복사하여 구독하세요. About Feeds를 방문하여 자세히 알아보고 시작하세요. 무료입니다.</tabi:about_feeds>
+        <tabi:visit_the_site>웹사이트 방문하기</tabi:visit_the_site>
+        <tabi:recent_posts>최근 게시물</tabi:recent_posts>
+        <tabi:last_updated_on>$DATE에 업데이트됨</tabi:last_updated_on>
+        <tabi:default_theme></tabi:default_theme>
+        <tabi:post_listing_date>date</tabi:post_listing_date>
+        <tabi:current_section>ida</tabi:current_section>
+    </tabi:metadata><link rel="extra-stylesheet" href="https://bl4nk.kr/skins/lavender.css?h=31ee0a710ed660d122f6" /><title>~/bl4nk - ida</title>
+        <subtitle>fill in the bl4nk</subtitle>
+    <link href="https://bl4nk.kr/ko/tags/ida/atom.xml" rel="self" type="application/atom+xml"/>
+    <link href="https://bl4nk.kr/ko/tags/ida/" rel="alternate" type="text/html"/>
+    <generator uri="https://www.getzola.org/">Zola</generator>
+    <updated>2025-12-10T00:00:00+00:00</updated>
+    <id>https://bl4nk.kr/ko/tags/ida/atom.xml</id><entry xml:lang="ko">
+        <title>가상머신에 IDA MCP Server 구축하고 LLM 연결하기 (feat. Gemini CLI)</title>
+        <published>2025-12-10T00:00:00+00:00</published>
+        <updated>2025-12-10T00:00:00+00:00</updated>
+        <author>
+            <name>bl4nk</name>
+        </author>
+        <link rel="alternate" href="https://bl4nk.kr/ko/blog/connecting-llm-to-ida-mcp-server-in-a-virtual-machine-feat-gemini-cli/" type="text/html"/>
+        <id>https://bl4nk.kr/ko/blog/connecting-llm-to-ida-mcp-server-in-a-virtual-machine-feat-gemini-cli/</id>
+        
+            <content type="html">&lt;h2 id=&quot;0x00-introduction&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#0x00-introduction&quot; aria-label=&quot;Anchor link for: 0x00-introduction&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;&#x2F;span&gt;&lt;&#x2F;a&gt;
+0x00. Introduction&lt;&#x2F;h2&gt;
+&lt;p&gt;MCP는 Model Context Protocol으로 AI가 다른 시스템과 통신하기 위한 규약이다.
+이 MCP를 이용하면 LLM이 PC나 데이터베이스와 같은 저장소, 검색 엔진이나 계산기같은 도구 등과 연결되어 복잡하고 가치있는 작업을 수행할 수 있다.
+비유적으로는 &lt;strong&gt;AI를 위한 USB-C 포트&lt;&#x2F;strong&gt;라는 표현이 자주 쓰인다.&lt;&#x2F;p&gt;
+&lt;p&gt;hex-rays 공식 플러그인도 있지만 star가 더 많은 &lt;a class=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;github.com&#x2F;mrexodia&#x2F;ida-pro-mcp&quot;&gt;github&lt;&#x2F;a&gt;을 기준으로 작성했다.
+또한 agent에게 작업을 맡겨두고, 나 또한 자유롭게 분석을 병행할 수 있도록 가상머신을 사용하여 MCP 서버를 구축하는 환경을 기준으로 작성했다.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;0x01-install&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#0x01-install&quot; aria-label=&quot;Anchor link for: 0x01-install&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;&#x2F;span&gt;&lt;&#x2F;a&gt;
+0x01. Install&lt;&#x2F;h2&gt;
+&lt;h3 id=&quot;guest&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#guest&quot; aria-label=&quot;Anchor link for: guest&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;&#x2F;span&gt;&lt;&#x2F;a&gt;
+Guest&lt;&#x2F;h3&gt;
+&lt;p&gt;앞서 언급했듯이 MCP 서버를 가상머신 내에 구성할 것이다.
+IDA를 실행할 수 있는 OS (MacOS, Linux, Windows) 중 아무거나 환경을 구축하면 되는데, 나는 Windows 10 x64 환경을 구축했다.&lt;&#x2F;p&gt;
+&lt;h4 id=&quot;python&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#python&quot; aria-label=&quot;Anchor link for: python&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;&#x2F;span&gt;&lt;&#x2F;a&gt;
+Python&lt;&#x2F;h4&gt;
+&lt;p&gt;3.11 혹은 더 높은 버전이 필요하다.
+보통 IDA를 설치할 때 python이 없으면 같이 설치되는데, 최신 기준으로는 모르겠으나 내 IDA 버전에서는 3.10을 설치한다.
+어차피 가상머신 안에서 돌릴 것이기 때문에 미리 설치해두는게 훨씬 편하다.&lt;&#x2F;p&gt;
+&lt;p&gt;개인적으로 &lt;code&gt;C:\Python\Python[VER]&lt;&#x2F;code&gt;에 설치하는 편인데, 주의할 것은 시스템 환경변수 &lt;code&gt;PATH&lt;&#x2F;code&gt;에 해당 경로가 추가되어 있어야 한다.
+내 기준으로는 다음과 같다.&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;C:\Python\Python314\&lt;&#x2F;code&gt;&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;code&gt;C:\Python\Python314\Scripts\&lt;&#x2F;code&gt;&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;h4 id=&quot;ida-pro&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#ida-pro&quot; aria-label=&quot;Anchor link for: ida-pro&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;&#x2F;span&gt;&lt;&#x2F;a&gt;
+IDA Pro&lt;&#x2F;h4&gt;
+&lt;p&gt;Github에서는 IDA Pro 8.3 버전이나 그 이상 혹은, 9 버전을 추천한다.
+그리고 IDA Free는 지원되지 않는다고 되어있는데, 지인의 정보에 따르면 개인 플랜인 IDA Home에서도 지원된다고 한다.&lt;&#x2F;p&gt;
+&lt;p&gt;설치 시 python 설치를 해제해야 이미 설치되어 있는 python을 찾기 때문에 꼭 해제해주어야 한다.&lt;&#x2F;p&gt;
+&lt;h4 id=&quot;ida-mcp&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#ida-mcp&quot; aria-label=&quot;Anchor link for: ida-mcp&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;&#x2F;span&gt;&lt;&#x2F;a&gt;
+IDA MCP&lt;&#x2F;h4&gt;
+&lt;p&gt;자세한 MCP 서버 설치 방법은 &lt;a class=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;github.com&#x2F;mrexodia&#x2F;ida-pro-mcp?tab=readme-ov-file#installation&quot;&gt;github&lt;&#x2F;a&gt;을 참고하면 된다.&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;cmd&quot; class=&quot;language-cmd z-code&quot;&gt;&lt;code class=&quot;language-cmd&quot; data-lang=&quot;cmd&quot;&gt;&lt;span class=&quot;z-source z-dosbatch&quot;&gt;pip uninstall ida-pro-mcp
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-source z-dosbatch&quot;&gt;pip install https:&#x2F;&#x2F;github.com&#x2F;mrexodia&#x2F;ida-pro-mcp&#x2F;archive&#x2F;refs&#x2F;heads&#x2F;main.zip
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-source z-dosbatch&quot;&gt;
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-source z-dosbatch&quot;&gt;ida-pro-mcp --install
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;설치 후 IDA 메뉴에서 &lt;code&gt;Edit&lt;&#x2F;code&gt; -&amp;gt; &lt;code&gt;Plugins&lt;&#x2F;code&gt; -&amp;gt; &lt;code&gt;MCP&lt;&#x2F;code&gt;를 선택했을 때 Output에 다음과 같이 나오면 성공이다.&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;txt&quot; class=&quot;language-txt z-code&quot;&gt;&lt;code class=&quot;language-txt&quot; data-lang=&quot;txt&quot;&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;[MCP] Server started:
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;  Streamable HTTP: http:&#x2F;&#x2F;127.0.0.1:13337&#x2F;mcp
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;  SSE: http:&#x2F;&#x2F;127.0.0.1:13337&#x2F;sse
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;  Config: http:&#x2F;&#x2F;127.0.0.1:13337&#x2F;config.html
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;&lt;code&gt;127.0.0.1&lt;&#x2F;code&gt;로 열리기 때문에 호스트와 통신을 위해서 포트 포워딩을 설정해도 되지만 그냥 다음 명령어를 실행해도 된다.&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;cmd&quot; class=&quot;language-cmd z-code&quot;&gt;&lt;code class=&quot;language-cmd&quot; data-lang=&quot;cmd&quot;&gt;&lt;span class=&quot;z-source z-dosbatch&quot;&gt;ida-pro-mcp --transport http:&#x2F;&#x2F;&lt;span class=&quot;z-constant z-numeric z-integer z-decimal z-dosbatch&quot;&gt;0&lt;&#x2F;span&gt;.&lt;span class=&quot;z-constant z-numeric z-integer z-decimal z-dosbatch&quot;&gt;0&lt;&#x2F;span&gt;.&lt;span class=&quot;z-constant z-numeric z-integer z-decimal z-dosbatch&quot;&gt;0&lt;&#x2F;span&gt;.&lt;span class=&quot;z-constant z-numeric z-integer z-decimal z-dosbatch&quot;&gt;0&lt;&#x2F;span&gt;:&lt;span class=&quot;z-constant z-numeric z-integer z-decimal z-dosbatch&quot;&gt;13337&lt;&#x2F;span&gt;&#x2F;sse
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;h3 id=&quot;host&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#host&quot; aria-label=&quot;Anchor link for: host&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;&#x2F;span&gt;&lt;&#x2F;a&gt;
+Host&lt;&#x2F;h3&gt;
+&lt;p&gt;사실 AI 어플리케이션도 게스트에 설치하면 간단하다.
+하지만 호스트에서 어차피 어플리케이션을 자주 쓰기도 하고 이게 조금 더 빠른 것 같아 게스트와 호스트를 분리했다.&lt;&#x2F;p&gt;
+&lt;p&gt;호스트는 Windows 11 + WSL이고, WSL에 설치하는 것을 기준으로 작성했다.&lt;&#x2F;p&gt;
+&lt;h4 id=&quot;gemini-cli&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#gemini-cli&quot; aria-label=&quot;Anchor link for: gemini-cli&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;&#x2F;span&gt;&lt;&#x2F;a&gt;
+Gemini CLI&lt;&#x2F;h4&gt;
+&lt;p&gt;Github에서는 Claude Desktop을 기준으로 데모 영상이 제공되는데, 여러가지 이유로 Gemini를 구독 중이기 때문에 Gemini CLI를 설치해야 한다.&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;bash&quot; class=&quot;language-bash z-code&quot;&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span class=&quot;z-source z-shell z-bash&quot;&gt;&lt;span class=&quot;z-comment z-line z-number-sign z-shell&quot;&gt;&lt;span class=&quot;z-punctuation z-definition z-comment z-begin z-shell&quot;&gt;#&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;span class=&quot;z-comment z-line z-number-sign z-shell&quot;&gt; npm install&lt;&#x2F;span&gt;&lt;span class=&quot;z-comment z-line z-number-sign z-shell&quot;&gt;
+&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;span class=&quot;z-source z-shell z-bash&quot;&gt;&lt;span class=&quot;z-meta z-function-call z-shell&quot;&gt;&lt;span class=&quot;z-variable z-function z-shell&quot;&gt;curl&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;span class=&quot;z-meta z-function-call z-arguments z-shell&quot;&gt;&lt;span class=&quot;z-variable z-parameter z-option z-shell&quot;&gt;&lt;span class=&quot;z-punctuation z-definition z-parameter z-shell&quot;&gt; -&lt;&#x2F;span&gt;o-&lt;&#x2F;span&gt; https:&#x2F;&#x2F;raw.githubusercontent.com&#x2F;nvm-sh&#x2F;nvm&#x2F;v0.40.1&#x2F;install.sh&lt;&#x2F;span&gt; &lt;span class=&quot;z-keyword z-operator z-logical z-pipe z-shell&quot;&gt;|&lt;&#x2F;span&gt; &lt;span class=&quot;z-meta z-function-call z-shell&quot;&gt;&lt;span class=&quot;z-variable z-function z-shell&quot;&gt;bash&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-source z-shell z-bash&quot;&gt;
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-source z-shell z-bash&quot;&gt;&lt;span class=&quot;z-comment z-line z-number-sign z-shell&quot;&gt;&lt;span class=&quot;z-punctuation z-definition z-comment z-begin z-shell&quot;&gt;#&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;span class=&quot;z-comment z-line z-number-sign z-shell&quot;&gt; Node.js install; require version &amp;gt; 20&lt;&#x2F;span&gt;&lt;span class=&quot;z-comment z-line z-number-sign z-shell&quot;&gt;
+&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;span class=&quot;z-source z-shell z-bash&quot;&gt;&lt;span class=&quot;z-meta z-function-call z-shell&quot;&gt;&lt;span class=&quot;z-variable z-function z-shell&quot;&gt;nvm&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;span class=&quot;z-meta z-function-call z-arguments z-shell&quot;&gt; install node&lt;&#x2F;span&gt;
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-source z-shell z-bash&quot;&gt;
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-source z-shell z-bash&quot;&gt;&lt;span class=&quot;z-comment z-line z-number-sign z-shell&quot;&gt;&lt;span class=&quot;z-punctuation z-definition z-comment z-begin z-shell&quot;&gt;#&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;span class=&quot;z-comment z-line z-number-sign z-shell&quot;&gt; Gemini CLI install&lt;&#x2F;span&gt;&lt;span class=&quot;z-comment z-line z-number-sign z-shell&quot;&gt;
+&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;span class=&quot;z-source z-shell z-bash&quot;&gt;&lt;span class=&quot;z-meta z-function-call z-shell&quot;&gt;&lt;span class=&quot;z-variable z-function z-shell&quot;&gt;npm&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;span class=&quot;z-meta z-function-call z-arguments z-shell&quot;&gt; install&lt;span class=&quot;z-variable z-parameter z-option z-shell&quot;&gt;&lt;span class=&quot;z-punctuation z-definition z-parameter z-shell&quot;&gt; -&lt;&#x2F;span&gt;g&lt;&#x2F;span&gt; @google&#x2F;gemini-cli&lt;&#x2F;span&gt;
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;마찬가지로 게스트와 통신을 위해서 &lt;code&gt;~&#x2F;.gemini&#x2F;settings.json&lt;&#x2F;code&gt; 파일에 MCP 서버의 정보를 추가해주어야 한다.&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;json&quot; class=&quot;language-json z-code&quot;&gt;&lt;code class=&quot;language-json&quot; data-lang=&quot;json&quot;&gt;&lt;span class=&quot;z-source z-json&quot;&gt;&lt;span class=&quot;z-meta z-mapping z-json&quot;&gt;&lt;span class=&quot;z-punctuation z-section z-mapping z-begin z-json&quot;&gt;{&lt;&#x2F;span&gt;
+&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;span class=&quot;z-source z-json&quot;&gt;&lt;span class=&quot;z-meta z-mapping z-json&quot;&gt;  &lt;&#x2F;span&gt;&lt;span class=&quot;z-meta z-mapping z-key z-json&quot;&gt;&lt;span class=&quot;z-string z-quoted z-double z-json&quot;&gt;&lt;span class=&quot;z-punctuation z-definition z-string z-begin z-json&quot;&gt;&amp;quot;&lt;&#x2F;span&gt;mcpServers&lt;span class=&quot;z-punctuation z-definition z-string z-end z-json&quot;&gt;&amp;quot;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;span class=&quot;z-meta z-mapping z-json&quot;&gt;&lt;span class=&quot;z-punctuation z-separator z-mapping z-key-value z-json&quot;&gt;:&lt;&#x2F;span&gt; &lt;&#x2F;span&gt;&lt;span class=&quot;z-meta z-mapping z-value z-json&quot;&gt;&lt;span class=&quot;z-meta z-mapping z-json&quot;&gt;&lt;span class=&quot;z-punctuation z-section z-mapping z-begin z-json&quot;&gt;{&lt;&#x2F;span&gt;
+&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;span class=&quot;z-source z-json&quot;&gt;&lt;span class=&quot;z-meta z-mapping z-value z-json&quot;&gt;&lt;span class=&quot;z-meta z-mapping z-json&quot;&gt;    &lt;&#x2F;span&gt;&lt;span class=&quot;z-meta z-mapping z-key z-json&quot;&gt;&lt;span class=&quot;z-string z-quoted z-double z-json&quot;&gt;&lt;span class=&quot;z-punctuation z-definition z-string z-begin z-json&quot;&gt;&amp;quot;&lt;&#x2F;span&gt;ida-vm&lt;span class=&quot;z-punctuation z-definition z-string z-end z-json&quot;&gt;&amp;quot;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;span class=&quot;z-meta z-mapping z-json&quot;&gt;&lt;span class=&quot;z-punctuation z-separator z-mapping z-key-value z-json&quot;&gt;:&lt;&#x2F;span&gt; &lt;&#x2F;span&gt;&lt;span class=&quot;z-meta z-mapping z-value z-json&quot;&gt;&lt;span class=&quot;z-meta z-mapping z-json&quot;&gt;&lt;span class=&quot;z-punctuation z-section z-mapping z-begin z-json&quot;&gt;{&lt;&#x2F;span&gt;
+&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;span class=&quot;z-source z-json&quot;&gt;&lt;span class=&quot;z-meta z-mapping z-value z-json&quot;&gt;&lt;span class=&quot;z-meta z-mapping z-value z-json&quot;&gt;&lt;span class=&quot;z-meta z-mapping z-json&quot;&gt;      &lt;&#x2F;span&gt;&lt;span class=&quot;z-meta z-mapping z-key z-json&quot;&gt;&lt;span class=&quot;z-string z-quoted z-double z-json&quot;&gt;&lt;span class=&quot;z-punctuation z-definition z-string z-begin z-json&quot;&gt;&amp;quot;&lt;&#x2F;span&gt;url&lt;span class=&quot;z-punctuation z-definition z-string z-end z-json&quot;&gt;&amp;quot;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;span class=&quot;z-meta z-mapping z-json&quot;&gt;&lt;span class=&quot;z-punctuation z-separator z-mapping z-key-value z-json&quot;&gt;:&lt;&#x2F;span&gt; &lt;&#x2F;span&gt;&lt;span class=&quot;z-meta z-mapping z-value z-json&quot;&gt;&lt;span class=&quot;z-string z-quoted z-double z-json&quot;&gt;&lt;span class=&quot;z-punctuation z-definition z-string z-begin z-json&quot;&gt;&amp;quot;&lt;&#x2F;span&gt;http:&#x2F;&#x2F;xxx.xxx.xxx.xxx:13337&#x2F;sse&lt;span class=&quot;z-punctuation z-definition z-string z-end z-json&quot;&gt;&amp;quot;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;span class=&quot;z-source z-json&quot;&gt;&lt;span class=&quot;z-meta z-mapping z-value z-json&quot;&gt;&lt;span class=&quot;z-meta z-mapping z-value z-json&quot;&gt;&lt;span class=&quot;z-meta z-mapping z-value z-json&quot;&gt;    &lt;span class=&quot;z-punctuation z-section z-mapping z-end z-json&quot;&gt;}&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;span class=&quot;z-source z-json&quot;&gt;&lt;span class=&quot;z-meta z-mapping z-value z-json&quot;&gt;&lt;span class=&quot;z-meta z-mapping z-value z-json&quot;&gt;  &lt;span class=&quot;z-punctuation z-section z-mapping z-end z-json&quot;&gt;}&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;span class=&quot;z-source z-json&quot;&gt;&lt;span class=&quot;z-meta z-mapping z-value z-json&quot;&gt;&lt;span class=&quot;z-punctuation z-section z-mapping z-end z-json&quot;&gt;}&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;설치와 설정이 잘 되었다면 &lt;code&gt;gemini&lt;&#x2F;code&gt; 명령어를 실행했을 때 다음과 같이 &lt;code&gt;Using: 1 MCP server&lt;&#x2F;code&gt;라는 로그를 볼 수 있다.&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;bash&quot; class=&quot;language-bash z-code&quot;&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span class=&quot;z-source z-shell z-bash&quot;&gt;
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-source z-shell z-bash&quot;&gt;   &lt;span class=&quot;z-meta z-function-call z-shell&quot;&gt;&lt;span class=&quot;z-variable z-function z-shell&quot;&gt;░░░&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;span class=&quot;z-meta z-function-call z-arguments z-shell&quot;&gt;            ░░░░░░░░░  ░░░░░░░░░░ ░░░░░░   ░░░░░░ ░░░░░ ░░░░░░   ░░░░░ ░░░░░&lt;&#x2F;span&gt;
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-source z-shell z-bash&quot;&gt;     &lt;span class=&quot;z-meta z-function-call z-shell&quot;&gt;&lt;span class=&quot;z-variable z-function z-shell&quot;&gt;░░░&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;span class=&quot;z-meta z-function-call z-arguments z-shell&quot;&gt;         ░░░     ░░░ ░░░        ░░░░░░   ░░░░░░  ░░░  ░░░░░░   ░░░░░  ░░░&lt;&#x2F;span&gt;
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-source z-shell z-bash&quot;&gt;       &lt;span class=&quot;z-meta z-function-call z-shell&quot;&gt;&lt;span class=&quot;z-variable z-function z-shell&quot;&gt;░░░&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;span class=&quot;z-meta z-function-call z-arguments z-shell&quot;&gt;      ░░░          ░░░        ░░░ ░░░ ░░░ ░░░  ░░░  ░░░ ░░░  ░░░    ░░░&lt;&#x2F;span&gt;
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-source z-shell z-bash&quot;&gt; &lt;span class=&quot;z-meta z-function-call z-shell&quot;&gt;&lt;span class=&quot;z-variable z-function z-shell&quot;&gt;███&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;span class=&quot;z-meta z-function-call z-arguments z-shell&quot;&gt;     ░░░    █████████░░██████████ ██████ ░░██████░█████░██████ ░░█████ █████░&lt;&#x2F;span&gt;
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-source z-shell z-bash&quot;&gt;   &lt;span class=&quot;z-meta z-function-call z-shell&quot;&gt;&lt;span class=&quot;z-variable z-function z-shell&quot;&gt;███&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;span class=&quot;z-meta z-function-call z-arguments z-shell&quot;&gt; ░░░     ███░    ███░███░░      ██████  ░██████░░███░░██████  ░█████  ███░░&lt;&#x2F;span&gt;
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-source z-shell z-bash&quot;&gt;     &lt;span class=&quot;z-meta z-function-call z-shell&quot;&gt;&lt;span class=&quot;z-variable z-function z-shell&quot;&gt;███&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;span class=&quot;z-meta z-function-call z-arguments z-shell&quot;&gt;      ███░░░     ░░███░░      ███░███ ███ ███░░███░░███░███  ███░░  ███░░&lt;&#x2F;span&gt;
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-source z-shell z-bash&quot;&gt;   &lt;span class=&quot;z-meta z-function-call z-shell&quot;&gt;&lt;span class=&quot;z-variable z-function z-shell&quot;&gt;░░░&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;span class=&quot;z-meta z-function-call z-arguments z-shell&quot;&gt; ███    ███ ░░░█████░██████░░░░░███░░█████  ███░░███░░███░░███ ███░░░ ███░░░&lt;&#x2F;span&gt;
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-source z-shell z-bash&quot;&gt;     &lt;span class=&quot;z-meta z-function-call z-shell&quot;&gt;&lt;span class=&quot;z-variable z-function z-shell&quot;&gt;███&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;span class=&quot;z-meta z-function-call z-arguments z-shell&quot;&gt;      ███      ███ ███        ███   ███   ███  ███  ███   ██████    ███&lt;&#x2F;span&gt;
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-source z-shell z-bash&quot;&gt;   &lt;span class=&quot;z-meta z-function-call z-shell&quot;&gt;&lt;span class=&quot;z-variable z-function z-shell&quot;&gt;███&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;span class=&quot;z-meta z-function-call z-arguments z-shell&quot;&gt;         ███     ███ ███        ███         ███  ███  ███    █████    ███&lt;&#x2F;span&gt;
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-source z-shell z-bash&quot;&gt; &lt;span class=&quot;z-meta z-function-call z-shell&quot;&gt;&lt;span class=&quot;z-variable z-function z-shell&quot;&gt;███&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;span class=&quot;z-meta z-function-call z-arguments z-shell&quot;&gt;            █████████  ██████████ ███         ███ █████ ███     █████  █████&lt;&#x2F;span&gt;
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-source z-shell z-bash&quot;&gt;
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-source z-shell z-bash&quot;&gt;&lt;span class=&quot;z-meta z-function-call z-shell&quot;&gt;&lt;span class=&quot;z-variable z-function z-shell&quot;&gt;Tips&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;span class=&quot;z-meta z-function-call z-arguments z-shell&quot;&gt; for getting started:&lt;&#x2F;span&gt;
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-source z-shell z-bash&quot;&gt;&lt;span class=&quot;z-meta z-function-call z-shell&quot;&gt;&lt;span class=&quot;z-variable z-function z-shell&quot;&gt;1.&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;span class=&quot;z-meta z-function-call z-arguments z-shell&quot;&gt; Ask questions, edit files, or run commands.&lt;&#x2F;span&gt;
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-source z-shell z-bash&quot;&gt;&lt;span class=&quot;z-meta z-function-call z-shell&quot;&gt;&lt;span class=&quot;z-variable z-function z-shell&quot;&gt;2.&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;span class=&quot;z-meta z-function-call z-arguments z-shell&quot;&gt; Be specific for the best results.&lt;&#x2F;span&gt;
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-source z-shell z-bash&quot;&gt;&lt;span class=&quot;z-meta z-function-call z-shell&quot;&gt;&lt;span class=&quot;z-variable z-function z-shell&quot;&gt;3.&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;span class=&quot;z-meta z-function-call z-arguments z-shell&quot;&gt; Create GEMINI.md files to customize your interactions with Gemini.&lt;&#x2F;span&gt;
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-source z-shell z-bash&quot;&gt;&lt;span class=&quot;z-meta z-function-call z-shell&quot;&gt;&lt;span class=&quot;z-variable z-function z-shell&quot;&gt;4.&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;span class=&quot;z-meta z-function-call z-arguments z-shell&quot;&gt; &#x2F;help for more information.&lt;&#x2F;span&gt;
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-source z-shell z-bash&quot;&gt;
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-source z-shell z-bash&quot;&gt; &lt;span class=&quot;z-meta z-function-call z-shell&quot;&gt;&lt;span class=&quot;z-variable z-function z-shell&quot;&gt;Using:&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;span class=&quot;z-meta z-function-call z-arguments z-shell&quot;&gt; 1 MCP server&lt;&#x2F;span&gt;
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-source z-shell z-bash&quot;&gt;&lt;span class=&quot;z-meta z-function-call z-shell&quot;&gt;&lt;span class=&quot;z-variable z-function z-shell&quot;&gt;╭──────────────────────────────────────────────────────────────────────────────────────────────────────╮&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-source z-shell z-bash&quot;&gt;&lt;span class=&quot;z-meta z-function-call z-shell&quot;&gt;&lt;span class=&quot;z-variable z-function z-shell&quot;&gt;│&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;span class=&quot;z-meta z-function-call z-arguments z-shell&quot;&gt; &lt;span class=&quot;z-keyword z-operator z-assignment z-redirection z-shell&quot;&gt;&amp;gt;&lt;&#x2F;span&gt;   Type your message or @path&#x2F;to&#x2F;file                                                               │&lt;&#x2F;span&gt;
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-source z-shell z-bash&quot;&gt;&lt;span class=&quot;z-meta z-function-call z-shell&quot;&gt;&lt;span class=&quot;z-variable z-function z-shell&quot;&gt;╰──────────────────────────────────────────────────────────────────────────────────────────────────────╯&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-source z-shell z-bash&quot;&gt; &lt;span class=&quot;z-meta z-function-call z-shell&quot;&gt;&lt;span class=&quot;z-variable z-function z-shell&quot;&gt;&lt;span class=&quot;z-meta z-group z-expansion z-tilde&quot;&gt;&lt;span class=&quot;z-variable z-language z-tilde z-shell&quot;&gt;~&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&#x2F;mcp&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;span class=&quot;z-meta z-function-call z-arguments z-shell&quot;&gt;                          no sandbox (see &#x2F;docs&lt;&#x2F;span&gt;&lt;span class=&quot;z-meta z-function-call z-shell&quot;&gt;&lt;&#x2F;span&gt;)                           &lt;span class=&quot;z-meta z-function-call z-shell&quot;&gt;&lt;span class=&quot;z-variable z-function z-shell&quot;&gt;Auto&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;span class=&quot;z-meta z-function-call z-arguments z-shell&quot;&gt; (Gemini 3&lt;&#x2F;span&gt;&lt;span class=&quot;z-meta z-function-call z-shell&quot;&gt;&lt;&#x2F;span&gt;) &lt;span class=&quot;z-meta z-function-call z-shell&quot;&gt;&lt;span class=&quot;z-variable z-function z-shell&quot;&gt;&#x2F;model&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;또한 &lt;code&gt;&#x2F;mcp&lt;&#x2F;code&gt; 명령어를 통해서 어떤 기능이 있는지 확인할 수 있다.&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;bash&quot; class=&quot;language-bash z-code&quot;&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span class=&quot;z-source z-shell z-bash&quot;&gt;&lt;span class=&quot;z-keyword z-operator z-assignment z-redirection z-shell&quot;&gt;&amp;gt;&lt;&#x2F;span&gt; &#x2F;mcp
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-source z-shell z-bash&quot;&gt;
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-source z-shell z-bash&quot;&gt;&lt;span class=&quot;z-meta z-function-call z-shell&quot;&gt;&lt;span class=&quot;z-variable z-function z-shell&quot;&gt;Configured&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;span class=&quot;z-meta z-function-call z-arguments z-shell&quot;&gt; MCP servers:&lt;&#x2F;span&gt;
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-source z-shell z-bash&quot;&gt;
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-source z-shell z-bash&quot;&gt;&lt;span class=&quot;z-meta z-function-call z-shell&quot;&gt;&lt;span class=&quot;z-variable z-function z-shell&quot;&gt;🟢&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;span class=&quot;z-meta z-function-call z-arguments z-shell&quot;&gt; ida-vm - Ready (71 tools, 15 resources&lt;&#x2F;span&gt;&lt;span class=&quot;z-meta z-function-call z-shell&quot;&gt;&lt;&#x2F;span&gt;)
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-source z-shell z-bash&quot;&gt;  &lt;span class=&quot;z-meta z-function-call z-shell&quot;&gt;&lt;span class=&quot;z-variable z-function z-shell&quot;&gt;Tools:&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-source z-shell z-bash&quot;&gt;  &lt;span class=&quot;z-meta z-function-call z-shell&quot;&gt;&lt;span class=&quot;z-variable z-function z-shell&quot;&gt;-&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;span class=&quot;z-meta z-function-call z-arguments z-shell&quot;&gt; analyze_funcs&lt;&#x2F;span&gt;
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-source z-shell z-bash&quot;&gt;  &lt;span class=&quot;z-meta z-function-call z-shell&quot;&gt;&lt;span class=&quot;z-variable z-function z-shell&quot;&gt;-&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;span class=&quot;z-meta z-function-call z-arguments z-shell&quot;&gt; analyze_strings&lt;&#x2F;span&gt;
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-source z-shell z-bash&quot;&gt;  &lt;span class=&quot;z-meta z-function-call z-shell&quot;&gt;&lt;span class=&quot;z-variable z-function z-shell&quot;&gt;-&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;span class=&quot;z-meta z-function-call z-arguments z-shell&quot;&gt; apply_types&lt;&#x2F;span&gt;
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-source z-shell z-bash&quot;&gt;  &lt;span class=&quot;z-meta z-function-call z-shell&quot;&gt;&lt;span class=&quot;z-variable z-function z-shell&quot;&gt;...&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-source z-shell z-bash&quot;&gt;  &lt;span class=&quot;z-meta z-function-call z-shell&quot;&gt;&lt;span class=&quot;z-variable z-function z-shell&quot;&gt;Resources:&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-source z-shell z-bash&quot;&gt;  &lt;span class=&quot;z-meta z-function-call z-shell&quot;&gt;&lt;span class=&quot;z-variable z-function z-shell&quot;&gt;-&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;span class=&quot;z-meta z-function-call z-arguments z-shell&quot;&gt; idb_metadata_resource (ida:&#x2F;&#x2F;idb&#x2F;metadata&lt;&#x2F;span&gt;&lt;span class=&quot;z-meta z-function-call z-shell&quot;&gt;&lt;&#x2F;span&gt;) &lt;span class=&quot;z-meta z-function-call z-shell&quot;&gt;&lt;span class=&quot;z-variable z-function z-shell&quot;&gt;[application&#x2F;json]&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-source z-shell z-bash&quot;&gt;  &lt;span class=&quot;z-meta z-function-call z-shell&quot;&gt;&lt;span class=&quot;z-variable z-function z-shell&quot;&gt;-&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;span class=&quot;z-meta z-function-call z-arguments z-shell&quot;&gt; idb_segments_resource (ida:&#x2F;&#x2F;idb&#x2F;segments&lt;&#x2F;span&gt;&lt;span class=&quot;z-meta z-function-call z-shell&quot;&gt;&lt;&#x2F;span&gt;) &lt;span class=&quot;z-meta z-function-call z-shell&quot;&gt;&lt;span class=&quot;z-variable z-function z-shell&quot;&gt;[application&#x2F;json]&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-source z-shell z-bash&quot;&gt;  &lt;span class=&quot;z-meta z-function-call z-shell&quot;&gt;&lt;span class=&quot;z-variable z-function z-shell&quot;&gt;-&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;span class=&quot;z-meta z-function-call z-arguments z-shell&quot;&gt; idb_entrypoints_resource (ida:&#x2F;&#x2F;idb&#x2F;entrypoints&lt;&#x2F;span&gt;&lt;span class=&quot;z-meta z-function-call z-shell&quot;&gt;&lt;&#x2F;span&gt;) &lt;span class=&quot;z-meta z-function-call z-shell&quot;&gt;&lt;span class=&quot;z-variable z-function z-shell&quot;&gt;[application&#x2F;json]&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-source z-shell z-bash&quot;&gt;  &lt;span class=&quot;z-meta z-function-call z-shell&quot;&gt;&lt;span class=&quot;z-variable z-function z-shell&quot;&gt;...&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;h2 id=&quot;0x02-prompt-engineering&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#0x02-prompt-engineering&quot; aria-label=&quot;Anchor link for: 0x02-prompt-engineering&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;&#x2F;span&gt;&lt;&#x2F;a&gt;
+0x02. Prompt Engineering&lt;&#x2F;h2&gt;
+&lt;p&gt;CTF를 준비할 때에는 미처 확인하지 못한 부분인데, 당연하게도 더 나은 분석 결과를 위해 프롬프트가 권장된다.
+기본적으로 제시된 프롬프트는 다음과 같다.&lt;&#x2F;p&gt;
+&lt;pre class=&quot;z-code&quot;&gt;&lt;code&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;Your task is to analyze the open file in IDA Pro. You can use the MCP tools to retrieve information. In general use the following strategy:
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;- Inspect the decompilation and add comments with your findings
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;- Rename variables to more sensible names
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;- Change the variable and argument types if necessary (especially pointer and array types)
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;- Change function names to be more descriptive
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;- If more details are necessary, disassemble the function and add comments with your findings
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;- NEVER convert number bases yourself. Use the `int_convert` MCP tool if needed!
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;- Do not attempt brute forcing, derive any solutions purely from the disassembly and simple python scripts
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;- Create a report.md with your findings and steps taken at the end
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;- When you find a solution, prompt to user for feedback with the password you found
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;다른 유저 (&lt;a class=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;github.com&#x2F;can1357&quot;&gt;@can1357&lt;&#x2F;a&gt;)가 공유한 프롬프트는 다음과 같다.&lt;&#x2F;p&gt;
+&lt;pre class=&quot;z-code&quot;&gt;&lt;code&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;Your task is to create a complete and comprehensive reverse engineering analysis. Reference AGENTS.md to understand the project goals and ensure the analysis serves our purposes.
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;Use the following systematic methodology:
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;1. **Decompilation Analysis**
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;   - Thoroughly inspect the decompiler output
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;   - Add detailed comments documenting your findings
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;   - Focus on understanding the actual functionality and purpose of each component (do not rely on old, incorrect comments)
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;2. **Improve Readability in the Database**
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;   - Rename variables to sensible, descriptive names
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;   - Correct variable and argument types where necessary (especially pointers and array types)
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;   - Update function names to be descriptive of their actual purpose
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;3. **Deep Dive When Needed**
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;   - If more details are necessary, examine the disassembly and add comments with findings
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;   - Document any low-level behaviors that aren&amp;#39;t clear from the decompilation alone
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;   - Use sub-agents to perform detailed analysis
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;4. **Important Constraints**
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;   - NEVER convert number bases yourself - use the int_convert MCP tool if needed
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;   - Use MCP tools to retrieve information as necessary
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;   - Derive all conclusions from actual analysis, not assumptions
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;5. **Documentation**
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;   - Produce comprehensive RE&#x2F;*.md files with your findings
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;   - Document the steps taken and methodology used
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;   - When asked by the user, ensure accuracy over previous analysis file
+&lt;&#x2F;span&gt;&lt;span class=&quot;z-text z-plain&quot;&gt;      - Organize findings in a way that serves the project goals outlined in AGENTS.md or CLAUDE.md
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+</content>
+        <summary type="html">게스트(IDA)와 호스트(Gemini CLI) 분리를 통한 효율적인 병행 분석 환경 구축</summary>
+        </entry>
+</feed>
