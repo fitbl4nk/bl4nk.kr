@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="utf-8"?>
+<?xml-stylesheet href="https://blog.bl4nk.kr/feed_style.xsl" type="text/xsl"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xml:lang="en">
+    <tabi:metadata xmlns:tabi="https://github.com/welpo/tabi">
+        <tabi:base_url>https://blog.bl4nk.kr</tabi:base_url>
+        <tabi:separator>
+            •
+        </tabi:separator>
+        <tabi:about_feeds>
+            This is a web feed, also known as an Atom feed. Subscribe by copying the URL from the address bar into your newsreader. Visit About Feeds to learn more and get started. It's free.
+        </tabi:about_feeds>
+        <tabi:visit_the_site>
+            Visit website
+        </tabi:visit_the_site>
+        <tabi:recent_posts>
+            Recent posts
+        </tabi:recent_posts>
+        <tabi:last_updated_on>
+            Updated on $DATE
+        </tabi:last_updated_on>
+        <tabi:default_theme></tabi:default_theme>
+        <tabi:post_listing_date>date</tabi:post_listing_date>
+        <tabi:current_section>llm</tabi:current_section>
+    </tabi:metadata><link rel="extra-stylesheet" href="https://blog.bl4nk.kr/skins/lavender.css?h=31ee0a710ed660d122f6" /><title>~/bl4nk - llm</title>
+        <subtitle>fill in the bl4nk</subtitle>
+    <link href="https://blog.bl4nk.kr/tags/llm/atom.xml" rel="self" type="application/atom+xml"/>
+    <link href="https://blog.bl4nk.kr/tags/llm/" rel="alternate" type="text/html"/>
+    <generator uri="https://www.getzola.org/">Zola</generator><updated>2025-12-10T00:00:00+00:00</updated><id>https://blog.bl4nk.kr/tags/llm/atom.xml</id><entry xml:lang="en">
+        <title>Connecting LLM to IDA MCP Server in a Virtual Machine (feat. Gemini CLI)</title>
+        <published>2025-12-10T00:00:00+00:00</published>
+        <updated>2025-12-10T00:00:00+00:00</updated>
+        <author>
+            <name>bl4nk</name>
+        </author>
+        <link rel="alternate" href="https://blog.bl4nk.kr/blog/connecting-llm-to-ida-mcp-server-in-a-virtual-machine-feat-gemini-cli/" type="text/html"/>
+        <id>https://blog.bl4nk.kr/blog/connecting-llm-to-ida-mcp-server-in-a-virtual-machine-feat-gemini-cli/</id>
+        
+            <content type="html">&lt;h2 id=&quot;0x00-introduction&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#0x00-introduction&quot; aria-label=&quot;Anchor link for: 0x00-introduction&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;/span&gt;&lt;/a&gt;
+0x00. Introduction&lt;/h2&gt;
+&lt;p&gt;MCP (Model Context Protocol) is an open standard that enables AI models to communicate with other systems.
+By using MCP, LLMs can connect to various data sources like PCs or databases, and tools like search engines or calculators to perform complex and valuable tasks.
+It’s often described as a &lt;strong&gt;“USB-C port for AI.”&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;While there is an official plugin from Hex-Rays, this guide is based on the &lt;a class=&quot;external&quot; rel=&quot;external&quot; href=&quot;https://github.com/mrexodia/ida-pro-mcp&quot;&gt;GitHub repository&lt;/a&gt; which has more stars and community traction.
+I also structured this setup using a virtual machine for the MCP Server, enabling a workflow where I can freely analyze in parallel while the agent handles its tasks.&lt;/p&gt;
+&lt;h2 id=&quot;0x01-install&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#0x01-install&quot; aria-label=&quot;Anchor link for: 0x01-install&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;/span&gt;&lt;/a&gt;
+0x01. Install&lt;/h2&gt;
+&lt;h3 id=&quot;guest&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#guest&quot; aria-label=&quot;Anchor link for: guest&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;/span&gt;&lt;/a&gt;
+Guest&lt;/h3&gt;
+&lt;p&gt;As mentioned, the MCP server will be set up inside a virtual machine.
+You can use any OS that supports IDA (macOS, Linux, and Windows), but I used Windows 10 x64.&lt;/p&gt;
+&lt;h4 id=&quot;python&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#python&quot; aria-label=&quot;Anchor link for: python&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;/span&gt;&lt;/a&gt;
+Python&lt;/h4&gt;
+&lt;p&gt;Python 3.11 or higher is required.
+Usually, IDA installs Python if it’s missing, but older versions might install 3.10.
+Since we’re running this in a VM, it’s easier to install the latest version beforehand.&lt;/p&gt;
+&lt;p&gt;I personally install it in &lt;code&gt;C:\Python\Python[VER]&lt;/code&gt;. Make sure to add the following paths to your system’s &lt;code&gt;PATH&lt;/code&gt; environment variable:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;C:\Python\Python314\&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;C:\Python\Python314\Scripts\&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&quot;ida-pro&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#ida-pro&quot; aria-label=&quot;Anchor link for: ida-pro&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;/span&gt;&lt;/a&gt;
+IDA Pro&lt;/h4&gt;
+&lt;p&gt;The GitHub repository recommends IDA Pro 8.3 or higher, or version 9.
+Note that IDA Free is not supported, but according to sources, IDA Home (the individual plan) works fine.&lt;/p&gt;
+&lt;p&gt;During installation, uncheck the option to install Python so that IDA uses the version you previously installed.&lt;/p&gt;
+&lt;h4 id=&quot;ida-mcp&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#ida-mcp&quot; aria-label=&quot;Anchor link for: ida-mcp&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;/span&gt;&lt;/a&gt;
+IDA MCP&lt;/h4&gt;
+&lt;p&gt;Refer to the &lt;a class=&quot;external&quot; rel=&quot;external&quot; href=&quot;https://github.com/mrexodia/ida-pro-mcp?tab=readme-ov-file#installation&quot;&gt;GitHub installation guide&lt;/a&gt; for detailed steps.&lt;/p&gt;
+&lt;pre class=&quot;giallo z-l-code z-d-code&quot; &gt;&lt;code data-lang=&quot;bat&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;pip uninstall ida-pro-mcp&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;pip install https://github.com/mrexodia/ida-pro-mcp/archive/refs/heads/main.zip&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;ida-pro-mcp --install&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;After installation, go to &lt;code&gt;Edit&lt;/code&gt; -&amp;gt; &lt;code&gt;Plugins&lt;/code&gt; -&amp;gt; &lt;code&gt;MCP&lt;/code&gt; in the IDA menu. If the output looks like this, the installation was successful:&lt;/p&gt;
+&lt;pre class=&quot;giallo z-l-code z-d-code&quot; &gt;&lt;code data-lang=&quot;plain&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;[MCP] Server started:&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;  Streamable HTTP: http://127.0.0.1:13337/mcp&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;  SSE: http://127.0.0.1:13337/sse&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;  Config: http://127.0.0.1:13337/config.html&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Since it listens on &lt;code&gt;127.0.0.1&lt;/code&gt; by default, you can set up port forwarding or simply run the following command to allow host communication:&lt;/p&gt;
+&lt;pre class=&quot;giallo z-l-code z-d-code&quot; &gt;&lt;code data-lang=&quot;bat&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;ida-pro-mcp --transport http://0.0.0.0:13337/sse&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&quot;host&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#host&quot; aria-label=&quot;Anchor link for: host&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;/span&gt;&lt;/a&gt;
+Host&lt;/h3&gt;
+&lt;p&gt;While you could install the AI application on the guest OS, I preferred separating the guest and host. I use these applications frequently on my host, and it feels slightly faster.&lt;/p&gt;
+&lt;p&gt;The host environment is Windows 11 with WSL, and the following steps are for WSL.&lt;/p&gt;
+&lt;h4 id=&quot;gemini-cli&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#gemini-cli&quot; aria-label=&quot;Anchor link for: gemini-cli&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;/span&gt;&lt;/a&gt;
+Gemini CLI&lt;/h4&gt;
+&lt;p&gt;The demo on GitHub uses Claude Desktop, but since I subscribe to Gemini, I’ll be using the Gemini CLI.&lt;/p&gt;
+&lt;pre class=&quot;giallo z-l-code z-d-code&quot; &gt;&lt;code data-lang=&quot;shellscript&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-5 z-d-3&quot;&gt;#&lt;/span&gt;&lt;span class=&quot;z-l-5 z-d-3&quot;&gt; Install nvm and Node.js (requires version &amp;gt; 20)&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;curl&lt;/span&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt; -&lt;/span&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt;o-&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh&lt;/span&gt;&lt;span class=&quot;z-l-8 z-d-10&quot;&gt; |&lt;/span&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt; bash&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;nvm&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; install&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; node&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-5 z-d-3&quot;&gt;#&lt;/span&gt;&lt;span class=&quot;z-l-5 z-d-3&quot;&gt; Install Gemini CLI&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;npm&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; install&lt;/span&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt; -&lt;/span&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt;g&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; @google/gemini-cli&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;To communicate with the guest, add the MCP server information to &lt;code&gt;~/.gemini/settings.json&lt;/code&gt;:&lt;/p&gt;
+&lt;pre class=&quot;giallo z-l-code z-d-code&quot; &gt;&lt;code data-lang=&quot;json&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;{&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt;  &amp;quot;&lt;/span&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt;mcpServers&lt;/span&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt;&amp;quot;&lt;/span&gt;&lt;span&gt;:&lt;/span&gt;&lt;span&gt; {&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt;    &amp;quot;&lt;/span&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt;ida-vm&lt;/span&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt;&amp;quot;&lt;/span&gt;&lt;span&gt;:&lt;/span&gt;&lt;span&gt; {&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt;      &amp;quot;&lt;/span&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt;url&lt;/span&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt;&amp;quot;&lt;/span&gt;&lt;span&gt;:&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; &amp;quot;&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;http://xxx.xxx.xxx.xxx:13337/sse&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;&amp;quot;&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    }&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;  }&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;}&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;If everything is set up correctly, running the &lt;code&gt;gemini&lt;/code&gt; command should show a log saying &lt;code&gt;Using: 1 MCP server&lt;/code&gt;.&lt;/p&gt;
+&lt;pre class=&quot;giallo z-l-code z-d-code&quot; &gt;&lt;code data-lang=&quot;shellscript&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;   ░░░&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;            ░░░░░░░░░&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;  ░░░░░░░░░░&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; ░░░░░░&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;   ░░░░░░&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; ░░░░░&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; ░░░░░░&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;   ░░░░░&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; ░░░░░&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;     ░░░&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;         ░░░&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;     ░░░&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; ░░░&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;        ░░░░░░&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;   ░░░░░░&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;  ░░░&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;  ░░░░░░&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;   ░░░░░&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;  ░░░&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;       ░░░&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;      ░░░&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;          ░░░&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;        ░░░&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; ░░░&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; ░░░&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; ░░░&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;  ░░░&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;  ░░░&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; ░░░&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;  ░░░&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;    ░░░&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt; ███&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;     ░░░&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;    █████████░░██████████&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; ██████&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; ░░██████░█████░██████&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; ░░█████&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; █████░&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;   ███&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; ░░░&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;     ███░&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;    ███░███░░&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;      ██████&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;  ░██████░░███░░██████&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;  ░█████&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;  ███░░&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;     ███&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;      ███░░░&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;     ░░███░░&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;      ███░███&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; ███&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; ███░░███░░███░███&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;  ███░░&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;  ███░░&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;   ░░░&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; ███&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;    ███&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; ░░░█████░██████░░░░░███░░█████&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;  ███░░███░░███░░███&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; ███░░░&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; ███░░░&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;     ███&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;      ███&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;      ███&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; ███&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;        ███&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;   ███&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;   ███&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;  ███&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;  ███&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;   ██████&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;    ███&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;   ███&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;         ███&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;     ███&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; ███&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;        ███&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;         ███&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;  ███&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;  ███&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;    █████&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;    ███&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt; ███&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;            █████████&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;  ██████████&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; ███&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;         ███&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; █████&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; ███&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;     █████&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;  █████&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;Tips&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; for&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; getting&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; started:&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;1.&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; Ask&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; questions,&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; edit&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; files,&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; or&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; run&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; commands.&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;2.&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; Be&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; specific&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; for&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; the&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; best&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; results.&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;3.&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; Create&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; GEMINI.md&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; files&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; to&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; customize&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; your&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; interactions&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; with&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; Gemini.&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;4.&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; /help&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; for&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; more&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; information.&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt; Using:&lt;/span&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt; 1&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; MCP&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; server&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;╭──────────────────────────────────────────────────────────────────────────────────────────────────────╮&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;│&lt;/span&gt;&lt;span class=&quot;z-l-8 z-d-10&quot;&gt; &amp;gt;&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;   Type&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; your&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; message&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; or&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; @path/to/file&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;                                                               │&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;╰──────────────────────────────────────────────────────────────────────────────────────────────────────╯&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt; ~/mcp&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;                          no&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; sandbox&lt;/span&gt;&lt;span&gt; (see&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; /docs&lt;/span&gt;&lt;span&gt;)                           Auto (&lt;/span&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;Gemini&lt;/span&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt; 3&lt;/span&gt;&lt;span&gt;) /model&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;You can verify the available tools using the &lt;code&gt;/mcp&lt;/code&gt; command.&lt;/p&gt;
+&lt;pre class=&quot;giallo z-l-code z-d-code&quot; &gt;&lt;code data-lang=&quot;shellscript&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-8 z-d-10&quot;&gt;&amp;gt;&lt;/span&gt;&lt;span&gt; /mcp&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;Configured&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; MCP&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; servers:&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;🟢&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; ida-vm&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; -&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; Ready&lt;/span&gt;&lt;span&gt; (71&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; tools,&lt;/span&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt; 15&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; resources&lt;/span&gt;&lt;span&gt;)&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;  Tools:&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;  -&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; analyze_funcs&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;  -&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; analyze_strings&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;  -&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; apply_types&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt;  .&lt;/span&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt;.&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;  Resources:&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;  -&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; idb_metadata_resource&lt;/span&gt;&lt;span&gt; (ida://idb/metadata&lt;/span&gt;&lt;span&gt;) &lt;/span&gt;&lt;span&gt;[&lt;/span&gt;&lt;span&gt;application/json&lt;/span&gt;&lt;span&gt;]&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;  -&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; idb_segments_resource&lt;/span&gt;&lt;span&gt; (ida://idb/segments&lt;/span&gt;&lt;span&gt;) &lt;/span&gt;&lt;span&gt;[&lt;/span&gt;&lt;span&gt;application/json&lt;/span&gt;&lt;span&gt;]&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;  -&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; idb_entrypoints_resource&lt;/span&gt;&lt;span&gt; (ida://idb/entrypoints&lt;/span&gt;&lt;span&gt;) &lt;/span&gt;&lt;span&gt;[&lt;/span&gt;&lt;span&gt;application/json&lt;/span&gt;&lt;span&gt;]&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt;  .&lt;/span&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt;.&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;h2 id=&quot;0x02-prompt-engineering&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#0x02-prompt-engineering&quot; aria-label=&quot;Anchor link for: 0x02-prompt-engineering&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;/span&gt;&lt;/a&gt;
+0x02. Prompt Engineering&lt;/h2&gt;
+&lt;p&gt;For better analysis results, using a well-crafted prompt is highly recommended.
+Here is the default recommended prompt:&lt;/p&gt;
+&lt;pre class=&quot;giallo z-l-code z-d-code&quot; &gt;&lt;code data-lang=&quot;plain&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;Your task is to analyze the open file in IDA Pro. You can use the MCP tools to retrieve information. In general use the following strategy:&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;- Inspect the decompilation and add comments with your findings&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;- Rename variables to more sensible names&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;- Change the variable and argument types if necessary (especially pointer and array types)&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;- Change function names to be more descriptive&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;- If more details are necessary, disassemble the function and add comments with your findings&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;- NEVER convert number bases yourself. Use the `int_convert` MCP tool if needed!&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;- Do not attempt brute forcing, derive any solutions purely from the disassembly and simple python scripts&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;- Create a report.md with your findings and steps taken at the end&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;- When you find a solution, prompt to user for feedback with the password you found&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;And here is a more detailed prompt shared by another user (&lt;a class=&quot;external&quot; rel=&quot;external&quot; href=&quot;https://github.com/can1357&quot;&gt;@can1357&lt;/a&gt;):&lt;/p&gt;
+&lt;pre class=&quot;giallo z-l-code z-d-code&quot; &gt;&lt;code data-lang=&quot;plain&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;Your task is to create a complete and comprehensive reverse engineering analysis. Reference AGENTS.md to understand the project goals and ensure the analysis serves our purposes.&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;Use the following systematic methodology:&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;1. **Decompilation Analysis**&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;   - Thoroughly inspect the decompiler output&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;   - Add detailed comments documenting your findings&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;   - Focus on understanding the actual functionality and purpose of each component (do not rely on old, incorrect comments)&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;2. **Improve Readability in the Database**&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;   - Rename variables to sensible, descriptive names&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;   - Correct variable and argument types where necessary (especially pointers and array types)&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;   - Update function names to be descriptive of their actual purpose&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;3. **Deep Dive When Needed**&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;   - If more details are necessary, examine the disassembly and add comments with findings&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;   - Document any low-level behaviors that aren&amp;#39;t clear from the decompilation alone&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;   - Use sub-agents to perform detailed analysis&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;4. **Important Constraints**&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;   - NEVER convert number bases yourself - use the int_convert MCP tool if needed&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;   - Use MCP tools to retrieve information as necessary&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;   - Derive all conclusions from actual analysis, not assumptions&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;5. **Documentation**&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;   - Produce comprehensive RE/*.md files with your findings&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;   - Document the steps taken and methodology used&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;   - When asked by the user, ensure accuracy over previous analysis file&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;   - Organize findings in a way that serves the project goals outlined in AGENTS.md or CLAUDE.md&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;</content>
+        <summary type="html">Setting up a parallel analysis workflow with IDA in a VM and Gemini CLI on Host</summary>
+        </entry>
+</feed>

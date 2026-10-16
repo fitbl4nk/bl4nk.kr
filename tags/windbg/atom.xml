@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="utf-8"?>
+<?xml-stylesheet href="https://blog.bl4nk.kr/feed_style.xsl" type="text/xsl"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xml:lang="en">
+    <tabi:metadata xmlns:tabi="https://github.com/welpo/tabi">
+        <tabi:base_url>https://blog.bl4nk.kr</tabi:base_url>
+        <tabi:separator>
+            •
+        </tabi:separator>
+        <tabi:about_feeds>
+            This is a web feed, also known as an Atom feed. Subscribe by copying the URL from the address bar into your newsreader. Visit About Feeds to learn more and get started. It's free.
+        </tabi:about_feeds>
+        <tabi:visit_the_site>
+            Visit website
+        </tabi:visit_the_site>
+        <tabi:recent_posts>
+            Recent posts
+        </tabi:recent_posts>
+        <tabi:last_updated_on>
+            Updated on $DATE
+        </tabi:last_updated_on>
+        <tabi:default_theme></tabi:default_theme>
+        <tabi:post_listing_date>date</tabi:post_listing_date>
+        <tabi:current_section>windbg</tabi:current_section>
+    </tabi:metadata><link rel="extra-stylesheet" href="https://blog.bl4nk.kr/skins/lavender.css?h=31ee0a710ed660d122f6" /><title>~/bl4nk - windbg</title>
+        <subtitle>fill in the bl4nk</subtitle>
+    <link href="https://blog.bl4nk.kr/tags/windbg/atom.xml" rel="self" type="application/atom+xml"/>
+    <link href="https://blog.bl4nk.kr/tags/windbg/" rel="alternate" type="text/html"/>
+    <generator uri="https://www.getzola.org/">Zola</generator><updated>2025-04-25T00:00:00+00:00</updated><id>https://blog.bl4nk.kr/tags/windbg/atom.xml</id><entry xml:lang="en">
+        <title>Windows kernel debugging</title>
+        <published>2025-04-25T00:00:00+00:00</published>
+        <updated>2025-04-25T00:00:00+00:00</updated>
+        <author>
+            <name>bl4nk</name>
+        </author>
+        <link rel="alternate" href="https://blog.bl4nk.kr/blog/windows-kernel-debugging/" type="text/html"/>
+        <id>https://blog.bl4nk.kr/blog/windows-kernel-debugging/</id>
+        
+            <content type="html">&lt;h2 id=&quot;0x00-introduction&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#0x00-introduction&quot; aria-label=&quot;Anchor link for: 0x00-introduction&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;/span&gt;&lt;/a&gt;
+0x00. Introduction&lt;/h2&gt;
+&lt;p&gt;This post covers setting up an environment for Windows kernel analysis and documents useful commands.&lt;/p&gt;
+&lt;h2 id=&quot;0x01-setup&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#0x01-setup&quot; aria-label=&quot;Anchor link for: 0x01-setup&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;/span&gt;&lt;/a&gt;
+0x01. Setup&lt;/h2&gt;
+&lt;h3 id=&quot;host-debugger&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#host-debugger&quot; aria-label=&quot;Anchor link for: host-debugger&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;/span&gt;&lt;/a&gt;
+Host (Debugger)&lt;/h3&gt;
+&lt;p&gt;Previously, the setup process was complex with Windows SDK, Virtual KD, etc. for convenience.
+Now it’s much simpler with the official WinDbg release.
+Just install WinDbg from the Microsoft Store and run it.&lt;/p&gt;
+&lt;p&gt;From the top menu, go to File -&amp;gt; Start Debugging -&amp;gt; Attach to kernel, select COM, and configure as follows:&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;https://blog.bl4nk.kr/blog/windows-kernel-debugging/image.png&quot; alt=&quot;host&quot; /&gt;&lt;/p&gt;
+&lt;p&gt;After completing the configuration and clicking “OK” in the lower right, it enters debugging standby mode.&lt;/p&gt;
+&lt;h3 id=&quot;guest-debuggee&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#guest-debuggee&quot; aria-label=&quot;Anchor link for: guest-debuggee&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;/span&gt;&lt;/a&gt;
+Guest (Debuggee)&lt;/h3&gt;
+&lt;p&gt;The debugging target can be set up through various programs. This post describes the configuration method when using VMware.&lt;/p&gt;
+&lt;p&gt;First, start the target VM, run PowerShell with administrator privileges, and execute these commands:&lt;/p&gt;
+&lt;pre class=&quot;giallo z-l-code z-d-code&quot; &gt;&lt;code data-lang=&quot;plain&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;bcdedit /debug on&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;bcdedit /dbgsettings serial debugport:1 baudrate:115200&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Then shut down the VM, select VM -&amp;gt; Settings -&amp;gt; Add from the top menu, and add a Serial Port.&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;https://blog.bl4nk.kr/blog/windows-kernel-debugging/image-1.png&quot; alt=&quot;guest-1&quot; /&gt;&lt;/p&gt;
+&lt;p&gt;Configure the added Serial Port as follows.
+Note that selecting “The other end is a virtual machine” instead of “The other end is an application” also seems to work for connection.&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;https://blog.bl4nk.kr/blog/windows-kernel-debugging/image-2.png&quot; alt=&quot;guest-2&quot; /&gt;&lt;/p&gt;
+&lt;p&gt;Finally, starting the target VM connects it to the host.&lt;/p&gt;
+&lt;h2 id=&quot;0x02-commands&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#0x02-commands&quot; aria-label=&quot;Anchor link for: 0x02-commands&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;/span&gt;&lt;/a&gt;
+0x02. Commands&lt;/h2&gt;
+&lt;h3 id=&quot;modules&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#modules&quot; aria-label=&quot;Anchor link for: modules&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;/span&gt;&lt;/a&gt;
+Modules&lt;/h3&gt;
+&lt;h4 id=&quot;lm-list-modules&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#lm-list-modules&quot; aria-label=&quot;Anchor link for: lm-list-modules&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;/span&gt;&lt;/a&gt;
+&lt;code&gt;lm&lt;/code&gt; (List Modules)&lt;/h4&gt;
+&lt;p&gt;Lists loaded modules or checks information for a specific module.&lt;/p&gt;
+&lt;pre class=&quot;giallo z-l-code z-d-code&quot; &gt;&lt;code data-lang=&quot;plain&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;kd&amp;gt; lm&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;kd&amp;gt; lm m fltmgr&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;kd&amp;gt; lm Dvm fltmgr&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Note that kernel mode regions load at high addresses like &lt;code&gt;fffff800&#39;00000000&lt;/code&gt;.&lt;/p&gt;
+&lt;h4 id=&quot;x-examine-symbols&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#x-examine-symbols&quot; aria-label=&quot;Anchor link for: x-examine-symbols&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;/span&gt;&lt;/a&gt;
+&lt;code&gt;x&lt;/code&gt; (eXamine symbols)&lt;/h4&gt;
+&lt;p&gt;Searches symbols or finds specific symbols.&lt;/p&gt;
+&lt;pre class=&quot;giallo z-l-code z-d-code&quot; &gt;&lt;code data-lang=&quot;plain&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;kd&amp;gt; x win32k!&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;kd&amp;gt; x win32k!vStr*&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&quot;symbols&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#symbols&quot; aria-label=&quot;Anchor link for: symbols&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;/span&gt;&lt;/a&gt;
+Symbols&lt;/h3&gt;
+&lt;h4 id=&quot;sym-noisy-noisy-symbol-loading&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#sym-noisy-noisy-symbol-loading&quot; aria-label=&quot;Anchor link for: sym-noisy-noisy-symbol-loading&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;/span&gt;&lt;/a&gt;
+&lt;code&gt;!sym noisy&lt;/code&gt; (Noisy symbol loading)&lt;/h4&gt;
+&lt;p&gt;Displays detailed symbol loading process. Good for debugging loading-related issues.&lt;/p&gt;
+&lt;pre class=&quot;giallo z-l-code z-d-code&quot; &gt;&lt;code data-lang=&quot;plain&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;kd&amp;gt; !sym noisy &lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;h4 id=&quot;sympath-set-symbol-path&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#sympath-set-symbol-path&quot; aria-label=&quot;Anchor link for: sympath-set-symbol-path&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;/span&gt;&lt;/a&gt;
+&lt;code&gt;!sympath&lt;/code&gt; (Set symbol path)&lt;/h4&gt;
+&lt;p&gt;Sets the path to symbol server or local directory where symbol files are stored.&lt;/p&gt;
+&lt;pre class=&quot;giallo z-l-code z-d-code&quot; &gt;&lt;code data-lang=&quot;plain&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;kd&amp;gt; !sympath SRV*C:\symbols*https://msdl.microsoft.com/download/symbols&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;kd&amp;gt; !sympath C:\symbols &lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;h4 id=&quot;reload-reload-symbols&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#reload-reload-symbols&quot; aria-label=&quot;Anchor link for: reload-reload-symbols&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;/span&gt;&lt;/a&gt;
+&lt;code&gt;.reload&lt;/code&gt; (Reload symbols)&lt;/h4&gt;
+&lt;p&gt;Reloads symbols. The &lt;code&gt;/f&lt;/code&gt; option forces symbol loading.&lt;/p&gt;
+&lt;pre class=&quot;giallo z-l-code z-d-code&quot; &gt;&lt;code data-lang=&quot;plain&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;kd&amp;gt; .reload&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;kd&amp;gt; .reload /f CLFS&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&quot;memory&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#memory&quot; aria-label=&quot;Anchor link for: memory&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;/span&gt;&lt;/a&gt;
+Memory&lt;/h3&gt;
+&lt;h4 id=&quot;db-dw-dd-dq-display-memory&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#db-dw-dd-dq-display-memory&quot; aria-label=&quot;Anchor link for: db-dw-dd-dq-display-memory&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;/span&gt;&lt;/a&gt;
+&lt;code&gt;db&lt;/code&gt; &lt;code&gt;dw&lt;/code&gt; &lt;code&gt;dd&lt;/code&gt; &lt;code&gt;dq&lt;/code&gt; (Display memory)&lt;/h4&gt;
+&lt;p&gt;Displays memory in byte, word, double word, and quad word units respectively.
+You can specify the count by adding &lt;code&gt;L[Length]&lt;/code&gt;, specify range by entering the end address, or use register names to read and use values stored in registers.&lt;/p&gt;
+&lt;pre class=&quot;giallo z-l-code z-d-code&quot; &gt;&lt;code data-lang=&quot;plain&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;kd&amp;gt; db [Address]&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;kd&amp;gt; dw [Address] L[Length]&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;kd&amp;gt; dd [Address] [Address]&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;kd&amp;gt; dq rsp&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;h4 id=&quot;ds-du-dc-display-string&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#ds-du-dc-display-string&quot; aria-label=&quot;Anchor link for: ds-du-dc-display-string&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;/span&gt;&lt;/a&gt;
+&lt;code&gt;ds&lt;/code&gt; &lt;code&gt;du&lt;/code&gt; &lt;code&gt;dc&lt;/code&gt; (Display string)&lt;/h4&gt;
+&lt;p&gt;Displays memory as ASCII and Unicode strings respectively.
+&lt;code&gt;dc&lt;/code&gt; displays both hex values and strings simultaneously.&lt;/p&gt;
+&lt;pre class=&quot;giallo z-l-code z-d-code&quot; &gt;&lt;code data-lang=&quot;plain&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;kd&amp;gt; ds [Address]&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;kd&amp;gt; du [Address]&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;h4 id=&quot;dps-display-pointers-and-symbols&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#dps-display-pointers-and-symbols&quot; aria-label=&quot;Anchor link for: dps-display-pointers-and-symbols&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;/span&gt;&lt;/a&gt;
+&lt;code&gt;dps&lt;/code&gt; (Display Pointers and Symbols)&lt;/h4&gt;
+&lt;p&gt;Interprets and displays pointers stored in memory based on symbol information.&lt;/p&gt;
+&lt;pre class=&quot;giallo z-l-code z-d-code&quot; &gt;&lt;code data-lang=&quot;plain&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;kd&amp;gt; dps [Address]&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;h4 id=&quot;u-ub-uf-unassemble&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#u-ub-uf-unassemble&quot; aria-label=&quot;Anchor link for: u-ub-uf-unassemble&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;/span&gt;&lt;/a&gt;
+&lt;code&gt;u&lt;/code&gt; &lt;code&gt;ub&lt;/code&gt; &lt;code&gt;uf&lt;/code&gt; (Unassemble)&lt;/h4&gt;
+&lt;p&gt;Interprets and displays instructions in memory as assembly.
+Using basic &lt;code&gt;u&lt;/code&gt; together with &lt;code&gt;ub&lt;/code&gt;, which displays assembly code in reverse from the input address, is convenient for viewing instructions before and after at once.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;uf&lt;/code&gt; displays the entire function. You can input any location within the function, not just the beginning. However, symbols must be properly loaded.&lt;/p&gt;
+&lt;pre class=&quot;giallo z-l-code z-d-code&quot; &gt;&lt;code data-lang=&quot;plain&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;kd&amp;gt; u rip&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;kd&amp;gt; ub rip&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;kd&amp;gt; uf [Address]&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&quot;information&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#information&quot; aria-label=&quot;Anchor link for: information&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;/span&gt;&lt;/a&gt;
+Information&lt;/h3&gt;
+&lt;h4 id=&quot;analyze-v-analyze-crash-dump&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#analyze-v-analyze-crash-dump&quot; aria-label=&quot;Anchor link for: analyze-v-analyze-crash-dump&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;/span&gt;&lt;/a&gt;
+&lt;code&gt;!analyze -v&lt;/code&gt; (Analyze crash dump)&lt;/h4&gt;
+&lt;p&gt;When a crash occurs, it displays various information including the general cause and register states.&lt;/p&gt;
+&lt;pre class=&quot;giallo z-l-code z-d-code&quot; &gt;&lt;code data-lang=&quot;plain&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;kd&amp;gt; !analyze -v&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;h4 id=&quot;k-kv-stack-trace&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#k-kv-stack-trace&quot; aria-label=&quot;Anchor link for: k-kv-stack-trace&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;/span&gt;&lt;/a&gt;
+&lt;code&gt;k&lt;/code&gt; &lt;code&gt;kv&lt;/code&gt; (Stack trace)&lt;/h4&gt;
+&lt;p&gt;Displays the current thread’s call stack. The &lt;code&gt;kv&lt;/code&gt; command also displays the values of passed arguments.&lt;/p&gt;
+&lt;pre class=&quot;giallo z-l-code z-d-code&quot; &gt;&lt;code data-lang=&quot;plain&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;kd&amp;gt; k&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;kd&amp;gt; kv &lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;h4 id=&quot;process-thread-process-thread-information&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#process-thread-process-thread-information&quot; aria-label=&quot;Anchor link for: process-thread-process-thread-information&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;/span&gt;&lt;/a&gt;
+&lt;code&gt;!process&lt;/code&gt; &lt;code&gt;!thread&lt;/code&gt; (Process / Thread information)&lt;/h4&gt;
+&lt;p&gt;Displays process information. Using &lt;code&gt;!process&lt;/code&gt; alone displays detailed information about the current process. Adding &lt;code&gt;0 0&lt;/code&gt; displays brief information about all processes. To check specific process information, input that process’s address.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;!thread&lt;/code&gt; displays thread information. When used alone, it displays current thread information. Inputting a specific thread address displays that thread’s information.&lt;/p&gt;
+&lt;pre class=&quot;giallo z-l-code z-d-code&quot; &gt;&lt;code data-lang=&quot;plain&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;kd&amp;gt; !process&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;kd&amp;gt; !process 0 0&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;kd&amp;gt; !process [Address]&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;kd&amp;gt; !thread&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;kd&amp;gt; !thread [Address]&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&quot;debug&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#debug&quot; aria-label=&quot;Anchor link for: debug&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;/span&gt;&lt;/a&gt;
+Debug&lt;/h3&gt;
+&lt;h4 id=&quot;bp-ba-break-point&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#bp-ba-break-point&quot; aria-label=&quot;Anchor link for: bp-ba-break-point&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;/span&gt;&lt;/a&gt;
+&lt;code&gt;bp&lt;/code&gt; &lt;code&gt;ba&lt;/code&gt; (Break Point)&lt;/h4&gt;
+&lt;p&gt;Stops execution at the specified address or symbol. The &lt;code&gt;ba&lt;/code&gt; command can stop on read/write/execute operations on specific memory.&lt;/p&gt;
+&lt;pre class=&quot;giallo z-l-code z-d-code&quot; &gt;&lt;code data-lang=&quot;plain&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;kd&amp;gt; bp 0x401000&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;kd&amp;gt; bp ntdll!NtCreateFile&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;kd&amp;gt; ba [r/w/x/rw][Length] [Address]&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;h4 id=&quot;p-t-pt-g-pc-flow-control&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#p-t-pt-g-pc-flow-control&quot; aria-label=&quot;Anchor link for: p-t-pt-g-pc-flow-control&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;/span&gt;&lt;/a&gt;
+&lt;code&gt;p&lt;/code&gt; &lt;code&gt;t&lt;/code&gt; &lt;code&gt;pt&lt;/code&gt; &lt;code&gt;g&lt;/code&gt; &lt;code&gt;pc&lt;/code&gt; (Flow control)&lt;/h4&gt;
+&lt;p&gt;Various debugging flow control commands exist: &lt;code&gt;p&lt;/code&gt;(&lt;code&gt;ni&lt;/code&gt;) executes the next instruction, &lt;code&gt;t&lt;/code&gt;(&lt;code&gt;si&lt;/code&gt;) executes the next instruction and steps into functions, &lt;code&gt;pt&lt;/code&gt; executes until function completion, &lt;code&gt;g&lt;/code&gt; runs until the next breakpoint, and &lt;code&gt;pc&lt;/code&gt; runs to a specific address.&lt;/p&gt;
+&lt;pre class=&quot;giallo z-l-code z-d-code&quot; &gt;&lt;code data-lang=&quot;plain&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;kd&amp;gt; p&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;kd&amp;gt; t&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;kd&amp;gt; pt&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;kd&amp;gt; g&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;kd&amp;gt; pc [Address]&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;</content>
+        <summary type="html">Windows kernel debugging with WinDbg + VMware</summary>
+        </entry>
+</feed>

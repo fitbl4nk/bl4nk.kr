@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="utf-8"?>
+<?xml-stylesheet href="https://blog.bl4nk.kr/feed_style.xsl" type="text/xsl"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xml:lang="en">
+    <tabi:metadata xmlns:tabi="https://github.com/welpo/tabi">
+        <tabi:base_url>https://blog.bl4nk.kr</tabi:base_url>
+        <tabi:separator>
+            •
+        </tabi:separator>
+        <tabi:about_feeds>
+            This is a web feed, also known as an Atom feed. Subscribe by copying the URL from the address bar into your newsreader. Visit About Feeds to learn more and get started. It's free.
+        </tabi:about_feeds>
+        <tabi:visit_the_site>
+            Visit website
+        </tabi:visit_the_site>
+        <tabi:recent_posts>
+            Recent posts
+        </tabi:recent_posts>
+        <tabi:last_updated_on>
+            Updated on $DATE
+        </tabi:last_updated_on>
+        <tabi:default_theme></tabi:default_theme>
+        <tabi:post_listing_date>date</tabi:post_listing_date>
+        <tabi:current_section>wsl</tabi:current_section>
+    </tabi:metadata><link rel="extra-stylesheet" href="https://blog.bl4nk.kr/skins/lavender.css?h=31ee0a710ed660d122f6" /><title>~/bl4nk - wsl</title>
+        <subtitle>fill in the bl4nk</subtitle>
+    <link href="https://blog.bl4nk.kr/tags/wsl/atom.xml" rel="self" type="application/atom+xml"/>
+    <link href="https://blog.bl4nk.kr/tags/wsl/" rel="alternate" type="text/html"/>
+    <generator uri="https://www.getzola.org/">Zola</generator><updated>2025-01-15T00:00:00+00:00</updated><id>https://blog.bl4nk.kr/tags/wsl/atom.xml</id><entry xml:lang="en">
+        <title>Setting up Windows for pwnable</title>
+        <published>2025-01-15T00:00:00+00:00</published>
+        <updated>2025-01-15T00:00:00+00:00</updated>
+        <author>
+            <name>bl4nk</name>
+        </author>
+        <link rel="alternate" href="https://blog.bl4nk.kr/blog/setting-up-windows-for-pwnable/" type="text/html"/>
+        <id>https://blog.bl4nk.kr/blog/setting-up-windows-for-pwnable/</id>
+        
+            <content type="html">&lt;h2 id=&quot;0x00-introduction&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#0x00-introduction&quot; aria-label=&quot;Anchor link for: 0x00-introduction&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;/span&gt;&lt;/a&gt;
+0x00. Introduction&lt;/h2&gt;
+&lt;p&gt;After purchasing a new desktop and frequently reconfiguring the environment due to driver issues, I thought it would be nice to document the setup process for reference.
+The installation environment is Windows 11 + Ubuntu(WSL).&lt;/p&gt;
+&lt;p&gt;I’ll add more useful settings or tools as I discover them.&lt;/p&gt;
+&lt;h2 id=&quot;0x01-windows&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#0x01-windows&quot; aria-label=&quot;Anchor link for: 0x01-windows&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;/span&gt;&lt;/a&gt;
+0x01. Windows&lt;/h2&gt;
+&lt;h3 id=&quot;wsl&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#wsl&quot; aria-label=&quot;Anchor link for: wsl&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;/span&gt;&lt;/a&gt;
+WSL&lt;/h3&gt;
+&lt;p&gt;In &lt;code&gt;Turn Windows Features On or Off&lt;/code&gt;, check the following items.&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;https://blog.bl4nk.kr/blog/setting-up-windows-for-pwnable/./image.png&quot; alt=&quot;wsl&quot; /&gt;&lt;/p&gt;
+&lt;p&gt;After restarting, execute these commands in the terminal.&lt;/p&gt;
+&lt;pre class=&quot;giallo z-l-code z-d-code&quot; &gt;&lt;code data-lang=&quot;powershell&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-5 z-d-3&quot;&gt;#&lt;/span&gt;&lt;span class=&quot;z-l-5 z-d-3&quot;&gt; Install WSL&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;wsl &lt;/span&gt;&lt;span class=&quot;z-l-8 z-d-10&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;z-l-8 z-d-10&quot;&gt;-&lt;/span&gt;&lt;span&gt;install&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-5 z-d-3&quot;&gt;#&lt;/span&gt;&lt;span class=&quot;z-l-5 z-d-3&quot;&gt; Check available packages and versions&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;wsl &lt;/span&gt;&lt;span class=&quot;z-l-8 z-d-10&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;z-l-8 z-d-10&quot;&gt;-&lt;/span&gt;&lt;span&gt;list &lt;/span&gt;&lt;span class=&quot;z-l-8 z-d-10&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;z-l-8 z-d-10&quot;&gt;-&lt;/span&gt;&lt;span&gt;online&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-5 z-d-3&quot;&gt;#&lt;/span&gt;&lt;span class=&quot;z-l-5 z-d-3&quot;&gt; Specific version&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;wsl &lt;/span&gt;&lt;span class=&quot;z-l-8 z-d-10&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;z-l-8 z-d-10&quot;&gt;-&lt;/span&gt;&lt;span&gt;install &lt;/span&gt;&lt;span class=&quot;z-l-8 z-d-10&quot;&gt;-&lt;/span&gt;&lt;span&gt;d Ubuntu&lt;/span&gt;&lt;span class=&quot;z-l-8 z-d-10&quot;&gt;-&lt;/span&gt;&lt;span&gt;[&lt;/span&gt;&lt;span class=&quot;z-l-8 z-d-10&quot;&gt;xx.xx&lt;/span&gt;&lt;span&gt;]&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-5 z-d-3&quot;&gt;#&lt;/span&gt;&lt;span class=&quot;z-l-5 z-d-3&quot;&gt; Latest version&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;wsl &lt;/span&gt;&lt;span class=&quot;z-l-8 z-d-10&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;z-l-8 z-d-10&quot;&gt;-&lt;/span&gt;&lt;span&gt;install &lt;/span&gt;&lt;span class=&quot;z-l-8 z-d-10&quot;&gt;-&lt;/span&gt;&lt;span&gt;d Ubuntu&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&quot;visual-studio-code&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#visual-studio-code&quot; aria-label=&quot;Anchor link for: visual-studio-code&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;/span&gt;&lt;/a&gt;
+Visual Studio Code&lt;/h3&gt;
+&lt;h4 id=&quot;theme-settings&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#theme-settings&quot; aria-label=&quot;Anchor link for: theme-settings&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;/span&gt;&lt;/a&gt;
+Theme Settings&lt;/h4&gt;
+&lt;p&gt;After installing the desired theme, press &lt;code&gt;ctrl + shift + p&lt;/code&gt; -&amp;gt; &lt;code&gt;Preferences: Color Theme&lt;/code&gt; -&amp;gt; &lt;code&gt;Browse Additional Color Themes...&lt;/code&gt; to select it.&lt;/p&gt;
+&lt;h4 id=&quot;keyboard-shortcuts&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#keyboard-shortcuts&quot; aria-label=&quot;Anchor link for: keyboard-shortcuts&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;/span&gt;&lt;/a&gt;
+Keyboard Shortcuts&lt;/h4&gt;
+&lt;p&gt;Press &lt;code&gt;ctrl + shift + p&lt;/code&gt; -&amp;gt; &lt;code&gt;Preferences: Open Keyboard Shortcuts(JSON)&lt;/code&gt; and paste the following.
+This is good when switching between editor and terminal.&lt;/p&gt;
+&lt;pre class=&quot;giallo z-l-code z-d-code&quot; &gt;&lt;code data-lang=&quot;json&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;[&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    {&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt;        &amp;quot;&lt;/span&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt;key&lt;/span&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt;&amp;quot;&lt;/span&gt;&lt;span&gt;:&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;     &amp;quot;&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;ctrl+`&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;&amp;quot;&lt;/span&gt;&lt;span&gt;,&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt;        &amp;quot;&lt;/span&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt;command&lt;/span&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt;&amp;quot;&lt;/span&gt;&lt;span&gt;:&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; &amp;quot;&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;workbench.action.terminal.focus&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;&amp;quot;&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    }&lt;/span&gt;&lt;span&gt;,&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    {&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt;        &amp;quot;&lt;/span&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt;key&lt;/span&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt;&amp;quot;&lt;/span&gt;&lt;span&gt;:&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;     &amp;quot;&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;ctrl+`&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;&amp;quot;&lt;/span&gt;&lt;span&gt;,&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt;        &amp;quot;&lt;/span&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt;command&lt;/span&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt;&amp;quot;&lt;/span&gt;&lt;span&gt;:&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; &amp;quot;&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;workbench.action.focusActiveEditorGroup&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;&amp;quot;&lt;/span&gt;&lt;span&gt;,&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt;        &amp;quot;&lt;/span&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt;when&lt;/span&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt;&amp;quot;&lt;/span&gt;&lt;span&gt;:&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;    &amp;quot;&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;terminalFocus&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;&amp;quot;&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    }&lt;/span&gt;&lt;span&gt;    &lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;]&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;This is more convenient when switching between multiple windows.&lt;/p&gt;
+&lt;pre class=&quot;giallo z-l-code z-d-code&quot; &gt;&lt;code data-lang=&quot;json&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;[&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    {&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt;        &amp;quot;&lt;/span&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt;key&lt;/span&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt;&amp;quot;&lt;/span&gt;&lt;span&gt;:&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; &amp;quot;&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;ctrl+`&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;&amp;quot;&lt;/span&gt;&lt;span&gt;,&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt;        &amp;quot;&lt;/span&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt;command&lt;/span&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt;&amp;quot;&lt;/span&gt;&lt;span&gt;:&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; &amp;quot;&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;workbench.action.focusNextGroup&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;&amp;quot;&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    }&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;]&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&quot;vmware&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#vmware&quot; aria-label=&quot;Anchor link for: vmware&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;/span&gt;&lt;/a&gt;
+VMware&lt;/h3&gt;
+&lt;p&gt;You need to register on the &lt;a class=&quot;external&quot; rel=&quot;external&quot; href=&quot;https://support.broadcom.com/&quot;&gt;Broadcom official website&lt;/a&gt;.
+I had trouble because the verification email didn’t arrive when I thoughtlessly used my university email, so just use &lt;code&gt;gmail.com&lt;/code&gt; to be safe.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;After logging in, select &lt;code&gt;Software&lt;/code&gt; -&amp;gt; &lt;code&gt;VMware Cloud Foundation&lt;/code&gt; -&amp;gt; &lt;code&gt;My Downloads&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;Find &lt;code&gt;VMware Workstation Pro&lt;/code&gt; and select the desired release&lt;/li&gt;
+&lt;li&gt;Note that you must check &lt;code&gt;I agree to the Terms and Conditions&lt;/code&gt; to enable the download button&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Fill in the address field that appears and click the download button again to complete the installation.&lt;/p&gt;
+&lt;h3 id=&quot;ida-free&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#ida-free&quot; aria-label=&quot;Anchor link for: ida-free&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;/span&gt;&lt;/a&gt;
+IDA Free&lt;/h3&gt;
+&lt;p&gt;While it only supports x86/x86-64 architectures, IDA is now available for free.
+On the &lt;a class=&quot;external&quot; rel=&quot;external&quot; href=&quot;https://hex-rays.com/&quot;&gt;hex-rays official website&lt;/a&gt;, select &lt;code&gt;Products&lt;/code&gt; -&amp;gt; &lt;code&gt;IDA Free&lt;/code&gt; and receive a license through email verification.&lt;/p&gt;
+&lt;p&gt;It seems fine now, but I once had an experience where it was too slow, and using a VPN to Belgium (where their headquarters is) made it much faster.&lt;/p&gt;
+&lt;h3 id=&quot;shell-sendto&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#shell-sendto&quot; aria-label=&quot;Anchor link for: shell-sendto&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;/span&gt;&lt;/a&gt;
+shell:sendto&lt;/h3&gt;
+&lt;p&gt;Typing &lt;code&gt;shell:sendto&lt;/code&gt; in the &lt;code&gt;win + r&lt;/code&gt; run window lets you register programs that appear in the &lt;code&gt;send to&lt;/code&gt; menu when right-clicking files.&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;https://blog.bl4nk.kr/blog/setting-up-windows-for-pwnable/./image-1.png&quot; alt=&quot;shell_sendto&quot; /&gt;&lt;/p&gt;
+&lt;p&gt;For example, create an IDA shortcut and place it in that folder.
+Then right-click a binary and select IDA from &lt;code&gt;send to&lt;/code&gt; to analyze it directly.
+It’s a bit inconvenient in Windows 11 since you need to press &lt;code&gt;Show more options&lt;/code&gt; to see it, but it’s quite useful.&lt;/p&gt;
+&lt;p&gt;You can apparently edit the registry to revert to the Windows 10 menu, but I skipped it to keep the new computer feeling.&lt;/p&gt;
+&lt;h2 id=&quot;0x02-linux&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#0x02-linux&quot; aria-label=&quot;Anchor link for: 0x02-linux&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;/span&gt;&lt;/a&gt;
+0x02. Linux&lt;/h2&gt;
+&lt;h3 id=&quot;packages&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#packages&quot; aria-label=&quot;Anchor link for: packages&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;/span&gt;&lt;/a&gt;
+Packages&lt;/h3&gt;
+&lt;pre class=&quot;giallo z-l-code z-d-code&quot; &gt;&lt;code data-lang=&quot;shellscript&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-5 z-d-3&quot;&gt;#&lt;/span&gt;&lt;span class=&quot;z-l-5 z-d-3&quot;&gt; initialize&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;sudo&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; apt&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; update&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;sudo&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; apt&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; upgrade&lt;/span&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt; -&lt;/span&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt;y&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-5 z-d-3&quot;&gt;#&lt;/span&gt;&lt;span class=&quot;z-l-5 z-d-3&quot;&gt; oh my zsh&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;sudo&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; apt&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; install&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; zsh&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; git&lt;/span&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt; -&lt;/span&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt;y&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;sh&lt;/span&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt; -&lt;/span&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt;c&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; &amp;quot;&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;$(&lt;/span&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;wget&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh&lt;/span&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt; -&lt;/span&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt;O&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; -&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;&amp;quot;&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-5 z-d-3&quot;&gt;#&lt;/span&gt;&lt;span class=&quot;z-l-5 z-d-3&quot;&gt; zsh plugins&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;git&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; clone&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; https://github.com/zsh-users/zsh-autosuggestions&lt;/span&gt;&lt;span&gt; $&lt;/span&gt;&lt;span&gt;{&lt;/span&gt;&lt;span&gt;ZSH_CUSTOM&lt;/span&gt;&lt;span class=&quot;z-l-8 z-d-10&quot;&gt;:-&lt;/span&gt;&lt;span&gt;~&lt;/span&gt;&lt;span class=&quot;z-l-8 z-d-10&quot;&gt;/&lt;/span&gt;&lt;span&gt;.&lt;/span&gt;&lt;span&gt;oh-my-zsh&lt;/span&gt;&lt;span class=&quot;z-l-8 z-d-10&quot;&gt;/&lt;/span&gt;&lt;span&gt;custom&lt;/span&gt;&lt;span&gt;}&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;/plugins/zsh-autosuggestions&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;git&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; clone&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; https://github.com/zsh-users/zsh-syntax-highlighting.git&lt;/span&gt;&lt;span&gt; $&lt;/span&gt;&lt;span&gt;{&lt;/span&gt;&lt;span&gt;ZSH_CUSTOM&lt;/span&gt;&lt;span class=&quot;z-l-8 z-d-10&quot;&gt;:-&lt;/span&gt;&lt;span&gt;~&lt;/span&gt;&lt;span class=&quot;z-l-8 z-d-10&quot;&gt;/&lt;/span&gt;&lt;span&gt;.&lt;/span&gt;&lt;span&gt;oh-my-zsh&lt;/span&gt;&lt;span class=&quot;z-l-8 z-d-10&quot;&gt;/&lt;/span&gt;&lt;span&gt;custom&lt;/span&gt;&lt;span&gt;}&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;/plugins/zsh-syntax-highlighting&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;sed&lt;/span&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt; -&lt;/span&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt;i&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; &amp;#39;&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;s/^plugins=(git)$/plugins=(git zsh-autosuggestions zsh-syntax-highlighting)/&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;&amp;#39;&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; ~/.zshrc&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt;source&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; .zshrc&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-5 z-d-3&quot;&gt;#&lt;/span&gt;&lt;span class=&quot;z-l-5 z-d-3&quot;&gt; python packages&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;sudo&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; apt&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; install&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; python3-pwntools&lt;/span&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt; -&lt;/span&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt;y&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-5 z-d-3&quot;&gt;#&lt;/span&gt;&lt;span class=&quot;z-l-5 z-d-3&quot;&gt; one gadget&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;sudo&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; apt&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; install&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; ruby&lt;/span&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt; -&lt;/span&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt;y&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;sudo&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; gem&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; install&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; one_gadget&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-5 z-d-3&quot;&gt;#&lt;/span&gt;&lt;span class=&quot;z-l-5 z-d-3&quot;&gt; gef&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;bash&lt;/span&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt; -&lt;/span&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt;c&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; &amp;quot;&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;$(&lt;/span&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;wget&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; https://gef.blah.cat/sh&lt;/span&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt; -&lt;/span&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt;O&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; -&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;&amp;quot;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&quot;jekyll&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#jekyll&quot; aria-label=&quot;Anchor link for: jekyll&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;/span&gt;&lt;/a&gt;
+jekyll&lt;/h3&gt;
+&lt;pre class=&quot;giallo z-l-code z-d-code&quot; &gt;&lt;code data-lang=&quot;shellscript&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-5 z-d-3&quot;&gt;#&lt;/span&gt;&lt;span class=&quot;z-l-5 z-d-3&quot;&gt; Install dependencies&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;sudo&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; apt&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; install&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; ruby-full&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; build-essential&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; zlib1g-dev&lt;/span&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt; -&lt;/span&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt;y&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-5 z-d-3&quot;&gt;#&lt;/span&gt;&lt;span class=&quot;z-l-5 z-d-3&quot;&gt; Change the file according to your shell&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt;echo&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; &amp;#39;&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;# Install Ruby Gems to ~/.gems&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;&amp;#39;&lt;/span&gt;&lt;span class=&quot;z-l-8 z-d-10&quot;&gt; &amp;gt;&amp;gt;&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; ~/.zshrc&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt;echo&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; &amp;#39;&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;export GEM_HOME=&amp;quot;$HOME/.gems&amp;quot;&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;&amp;#39;&lt;/span&gt;&lt;span class=&quot;z-l-8 z-d-10&quot;&gt; &amp;gt;&amp;gt;&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; ~/.zshrc&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt;echo&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; &amp;#39;&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;export PATH=&amp;quot;$HOME/.gems/bin:$PATH&amp;quot;&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;&amp;#39;&lt;/span&gt;&lt;span class=&quot;z-l-8 z-d-10&quot;&gt; &amp;gt;&amp;gt;&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; ~/.zshrc&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt;source&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; ~/.zshrc&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-5 z-d-3&quot;&gt;#&lt;/span&gt;&lt;span class=&quot;z-l-5 z-d-3&quot;&gt; Install jekyll&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;gem&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; install&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; jekyll&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; bundler&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-5 z-d-3&quot;&gt;#&lt;/span&gt;&lt;span class=&quot;z-l-5 z-d-3&quot;&gt; Execute in jekyll directory such as github.io repository&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt;cd&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; fitbl4nk.github.io&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;bundle&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; install&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&quot;zola&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#zola&quot; aria-label=&quot;Anchor link for: zola&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;/span&gt;&lt;/a&gt;
+zola&lt;/h3&gt;
+&lt;pre class=&quot;giallo z-l-code z-d-code&quot; &gt;&lt;code data-lang=&quot;shellscript&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-5 z-d-3&quot;&gt;#&lt;/span&gt;&lt;span class=&quot;z-l-5 z-d-3&quot;&gt; Download the latest version of zola (https://github.com/getzola/zola/releases)&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;wget&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; https://github.com/getzola/zola/releases/download/v0.20.0/zola-v0.20.0-x86_64-unknown-linux-gnu.tar.gz&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;rm&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; zola-v0.20.0-x86_64-unknown-linux-gnu.tar.gz&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;sudo&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; mv&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; zola&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; /usr/local/bin&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-5 z-d-3&quot;&gt;#&lt;/span&gt;&lt;span class=&quot;z-l-5 z-d-3&quot;&gt; Execute in zola directory such as github.io repository&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt;cd&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; bl4nk.kr&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;zola&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; serve&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;</content>
+        <summary type="html">Useful tools and settings for pwnable</summary>
+        </entry>
+</feed>

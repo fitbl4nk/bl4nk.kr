@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="utf-8"?>
+<?xml-stylesheet href="https://blog.bl4nk.kr/feed_style.xsl" type="text/xsl"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xml:lang="ko">
+    <tabi:metadata xmlns:tabi="https://github.com/welpo/tabi">
+        <tabi:base_url>https://blog.bl4nk.kr</tabi:base_url>
+        <tabi:separator>
+            •
+        </tabi:separator>
+        <tabi:about_feeds>
+            이것은 웹 피드이며, Atom 피드로도 알려져 있습니다. 주소 표시 줄의 URL을 뉴스 리더로 복사하여 구독하세요. About Feeds를 방문하여 자세히 알아보고 시작하세요. 무료입니다.
+        </tabi:about_feeds>
+        <tabi:visit_the_site>
+            웹사이트 방문하기
+        </tabi:visit_the_site>
+        <tabi:recent_posts>
+            최근 게시물
+        </tabi:recent_posts>
+        <tabi:last_updated_on>
+            $DATE에 업데이트됨
+        </tabi:last_updated_on>
+        <tabi:default_theme></tabi:default_theme>
+        <tabi:post_listing_date>date</tabi:post_listing_date>
+        <tabi:current_section>ida</tabi:current_section>
+    </tabi:metadata><link rel="extra-stylesheet" href="https://blog.bl4nk.kr/skins/lavender.css?h=31ee0a710ed660d122f6" /><title>~/bl4nk - ida</title>
+        <subtitle>fill in the bl4nk</subtitle>
+    <link href="https://blog.bl4nk.kr/ko/tags/ida/atom.xml" rel="self" type="application/atom+xml"/>
+    <link href="https://blog.bl4nk.kr/ko/tags/ida/" rel="alternate" type="text/html"/>
+    <generator uri="https://www.getzola.org/">Zola</generator><updated>2025-12-10T00:00:00+00:00</updated><id>https://blog.bl4nk.kr/ko/tags/ida/atom.xml</id><entry xml:lang="ko">
+        <title>가상머신에 IDA MCP Server 구축하고 LLM 연결하기 (feat. Gemini CLI)</title>
+        <published>2025-12-10T00:00:00+00:00</published>
+        <updated>2025-12-10T00:00:00+00:00</updated>
+        <author>
+            <name>bl4nk</name>
+        </author>
+        <link rel="alternate" href="https://blog.bl4nk.kr/ko/blog/connecting-llm-to-ida-mcp-server-in-a-virtual-machine-feat-gemini-cli/" type="text/html"/>
+        <id>https://blog.bl4nk.kr/ko/blog/connecting-llm-to-ida-mcp-server-in-a-virtual-machine-feat-gemini-cli/</id>
+        
+            <content type="html">&lt;h2 id=&quot;0x00-introduction&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#0x00-introduction&quot; aria-label=&quot;Anchor link for: 0x00-introduction&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;/span&gt;&lt;/a&gt;
+0x00. Introduction&lt;/h2&gt;
+&lt;p&gt;MCP는 Model Context Protocol으로 AI가 다른 시스템과 통신하기 위한 규약이다.
+이 MCP를 이용하면 LLM이 PC나 데이터베이스와 같은 저장소, 검색 엔진이나 계산기같은 도구 등과 연결되어 복잡하고 가치있는 작업을 수행할 수 있다.
+비유적으로는 &lt;strong&gt;AI를 위한 USB-C 포트&lt;/strong&gt;라는 표현이 자주 쓰인다.&lt;/p&gt;
+&lt;p&gt;hex-rays 공식 플러그인도 있지만 star가 더 많은 &lt;a class=&quot;external&quot; rel=&quot;external&quot; href=&quot;https://github.com/mrexodia/ida-pro-mcp&quot;&gt;github&lt;/a&gt;을 기준으로 작성했다.
+또한 agent에게 작업을 맡겨두고, 나 또한 자유롭게 분석을 병행할 수 있도록 가상머신을 사용하여 MCP 서버를 구축하는 환경을 기준으로 작성했다.&lt;/p&gt;
+&lt;h2 id=&quot;0x01-install&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#0x01-install&quot; aria-label=&quot;Anchor link for: 0x01-install&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;/span&gt;&lt;/a&gt;
+0x01. Install&lt;/h2&gt;
+&lt;h3 id=&quot;guest&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#guest&quot; aria-label=&quot;Anchor link for: guest&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;/span&gt;&lt;/a&gt;
+Guest&lt;/h3&gt;
+&lt;p&gt;앞서 언급했듯이 MCP 서버를 가상머신 내에 구성할 것이다.
+IDA를 실행할 수 있는 OS (MacOS, Linux, Windows) 중 아무거나 환경을 구축하면 되는데, 나는 Windows 10 x64 환경을 구축했다.&lt;/p&gt;
+&lt;h4 id=&quot;python&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#python&quot; aria-label=&quot;Anchor link for: python&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;/span&gt;&lt;/a&gt;
+Python&lt;/h4&gt;
+&lt;p&gt;3.11 혹은 더 높은 버전이 필요하다.
+보통 IDA를 설치할 때 python이 없으면 같이 설치되는데, 최신 기준으로는 모르겠으나 내 IDA 버전에서는 3.10을 설치한다.
+어차피 가상머신 안에서 돌릴 것이기 때문에 미리 설치해두는게 훨씬 편하다.&lt;/p&gt;
+&lt;p&gt;개인적으로 &lt;code&gt;C:\Python\Python[VER]&lt;/code&gt;에 설치하는 편인데, 주의할 것은 시스템 환경변수 &lt;code&gt;PATH&lt;/code&gt;에 해당 경로가 추가되어 있어야 한다.
+내 기준으로는 다음과 같다.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;C:\Python\Python314\&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;C:\Python\Python314\Scripts\&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&quot;ida-pro&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#ida-pro&quot; aria-label=&quot;Anchor link for: ida-pro&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;/span&gt;&lt;/a&gt;
+IDA Pro&lt;/h4&gt;
+&lt;p&gt;Github에서는 IDA Pro 8.3 버전이나 그 이상 혹은, 9 버전을 추천한다.
+그리고 IDA Free는 지원되지 않는다고 되어있는데, 지인의 정보에 따르면 개인 플랜인 IDA Home에서도 지원된다고 한다.&lt;/p&gt;
+&lt;p&gt;설치 시 python 설치를 해제해야 이미 설치되어 있는 python을 찾기 때문에 꼭 해제해주어야 한다.&lt;/p&gt;
+&lt;h4 id=&quot;ida-mcp&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#ida-mcp&quot; aria-label=&quot;Anchor link for: ida-mcp&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;/span&gt;&lt;/a&gt;
+IDA MCP&lt;/h4&gt;
+&lt;p&gt;자세한 MCP 서버 설치 방법은 &lt;a class=&quot;external&quot; rel=&quot;external&quot; href=&quot;https://github.com/mrexodia/ida-pro-mcp?tab=readme-ov-file#installation&quot;&gt;github&lt;/a&gt;을 참고하면 된다.&lt;/p&gt;
+&lt;pre class=&quot;giallo z-l-code z-d-code&quot; &gt;&lt;code data-lang=&quot;bat&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;pip uninstall ida-pro-mcp&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;pip install https://github.com/mrexodia/ida-pro-mcp/archive/refs/heads/main.zip&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;ida-pro-mcp --install&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;설치 후 IDA 메뉴에서 &lt;code&gt;Edit&lt;/code&gt; -&amp;gt; &lt;code&gt;Plugins&lt;/code&gt; -&amp;gt; &lt;code&gt;MCP&lt;/code&gt;를 선택했을 때 Output에 다음과 같이 나오면 성공이다.&lt;/p&gt;
+&lt;pre class=&quot;giallo z-l-code z-d-code&quot; &gt;&lt;code data-lang=&quot;plain&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;[MCP] Server started:&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;  Streamable HTTP: http://127.0.0.1:13337/mcp&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;  SSE: http://127.0.0.1:13337/sse&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;  Config: http://127.0.0.1:13337/config.html&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;&lt;code&gt;127.0.0.1&lt;/code&gt;로 열리기 때문에 호스트와 통신을 위해서 포트 포워딩을 설정해도 되지만 그냥 다음 명령어를 실행해도 된다.&lt;/p&gt;
+&lt;pre class=&quot;giallo z-l-code z-d-code&quot; &gt;&lt;code data-lang=&quot;bat&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;ida-pro-mcp --transport http://0.0.0.0:13337/sse&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&quot;host&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#host&quot; aria-label=&quot;Anchor link for: host&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;/span&gt;&lt;/a&gt;
+Host&lt;/h3&gt;
+&lt;p&gt;사실 AI 어플리케이션도 게스트에 설치하면 간단하다.
+하지만 호스트에서 어차피 어플리케이션을 자주 쓰기도 하고 이게 조금 더 빠른 것 같아 게스트와 호스트를 분리했다.&lt;/p&gt;
+&lt;p&gt;호스트는 Windows 11 + WSL이고, WSL에 설치하는 것을 기준으로 작성했다.&lt;/p&gt;
+&lt;h4 id=&quot;gemini-cli&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#gemini-cli&quot; aria-label=&quot;Anchor link for: gemini-cli&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;/span&gt;&lt;/a&gt;
+Gemini CLI&lt;/h4&gt;
+&lt;p&gt;Github에서는 Claude Desktop을 기준으로 데모 영상이 제공되는데, 여러가지 이유로 Gemini를 구독 중이기 때문에 Gemini CLI를 설치해야 한다.&lt;/p&gt;
+&lt;pre class=&quot;giallo z-l-code z-d-code&quot; &gt;&lt;code data-lang=&quot;shellscript&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-5 z-d-3&quot;&gt;#&lt;/span&gt;&lt;span class=&quot;z-l-5 z-d-3&quot;&gt; npm install&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;curl&lt;/span&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt; -&lt;/span&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt;o-&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh&lt;/span&gt;&lt;span class=&quot;z-l-8 z-d-10&quot;&gt; |&lt;/span&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt; bash&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-5 z-d-3&quot;&gt;#&lt;/span&gt;&lt;span class=&quot;z-l-5 z-d-3&quot;&gt; Node.js install; require version &amp;gt; 20&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;nvm&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; install&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; node&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-5 z-d-3&quot;&gt;#&lt;/span&gt;&lt;span class=&quot;z-l-5 z-d-3&quot;&gt; Gemini CLI install&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;npm&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; install&lt;/span&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt; -&lt;/span&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt;g&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; @google/gemini-cli&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;마찬가지로 게스트와 통신을 위해서 &lt;code&gt;~/.gemini/settings.json&lt;/code&gt; 파일에 MCP 서버의 정보를 추가해주어야 한다.&lt;/p&gt;
+&lt;pre class=&quot;giallo z-l-code z-d-code&quot; &gt;&lt;code data-lang=&quot;json&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;{&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt;  &amp;quot;&lt;/span&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt;mcpServers&lt;/span&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt;&amp;quot;&lt;/span&gt;&lt;span&gt;:&lt;/span&gt;&lt;span&gt; {&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt;    &amp;quot;&lt;/span&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt;ida-vm&lt;/span&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt;&amp;quot;&lt;/span&gt;&lt;span&gt;:&lt;/span&gt;&lt;span&gt; {&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt;      &amp;quot;&lt;/span&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt;url&lt;/span&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt;&amp;quot;&lt;/span&gt;&lt;span&gt;:&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; &amp;quot;&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;http://xxx.xxx.xxx.xxx:13337/sse&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;&amp;quot;&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    }&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;  }&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;}&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;설치와 설정이 잘 되었다면 &lt;code&gt;gemini&lt;/code&gt; 명령어를 실행했을 때 다음과 같이 &lt;code&gt;Using: 1 MCP server&lt;/code&gt;라는 로그를 볼 수 있다.&lt;/p&gt;
+&lt;pre class=&quot;giallo z-l-code z-d-code&quot; &gt;&lt;code data-lang=&quot;shellscript&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;   ░░░&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;            ░░░░░░░░░&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;  ░░░░░░░░░░&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; ░░░░░░&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;   ░░░░░░&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; ░░░░░&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; ░░░░░░&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;   ░░░░░&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; ░░░░░&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;     ░░░&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;         ░░░&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;     ░░░&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; ░░░&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;        ░░░░░░&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;   ░░░░░░&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;  ░░░&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;  ░░░░░░&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;   ░░░░░&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;  ░░░&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;       ░░░&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;      ░░░&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;          ░░░&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;        ░░░&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; ░░░&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; ░░░&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; ░░░&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;  ░░░&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;  ░░░&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; ░░░&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;  ░░░&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;    ░░░&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt; ███&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;     ░░░&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;    █████████░░██████████&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; ██████&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; ░░██████░█████░██████&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; ░░█████&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; █████░&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;   ███&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; ░░░&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;     ███░&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;    ███░███░░&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;      ██████&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;  ░██████░░███░░██████&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;  ░█████&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;  ███░░&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;     ███&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;      ███░░░&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;     ░░███░░&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;      ███░███&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; ███&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; ███░░███░░███░███&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;  ███░░&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;  ███░░&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;   ░░░&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; ███&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;    ███&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; ░░░█████░██████░░░░░███░░█████&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;  ███░░███░░███░░███&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; ███░░░&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; ███░░░&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;     ███&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;      ███&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;      ███&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; ███&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;        ███&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;   ███&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;   ███&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;  ███&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;  ███&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;   ██████&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;    ███&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;   ███&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;         ███&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;     ███&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; ███&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;        ███&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;         ███&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;  ███&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;  ███&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;    █████&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;    ███&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt; ███&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;            █████████&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;  ██████████&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; ███&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;         ███&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; █████&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; ███&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;     █████&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;  █████&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;Tips&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; for&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; getting&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; started:&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;1.&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; Ask&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; questions,&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; edit&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; files,&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; or&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; run&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; commands.&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;2.&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; Be&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; specific&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; for&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; the&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; best&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; results.&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;3.&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; Create&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; GEMINI.md&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; files&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; to&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; customize&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; your&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; interactions&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; with&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; Gemini.&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;4.&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; /help&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; for&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; more&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; information.&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt; Using:&lt;/span&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt; 1&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; MCP&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; server&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;╭──────────────────────────────────────────────────────────────────────────────────────────────────────╮&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;│&lt;/span&gt;&lt;span class=&quot;z-l-8 z-d-10&quot;&gt; &amp;gt;&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;   Type&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; your&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; message&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; or&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; @path/to/file&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;                                                               │&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;╰──────────────────────────────────────────────────────────────────────────────────────────────────────╯&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt; ~/mcp&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt;                          no&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; sandbox&lt;/span&gt;&lt;span&gt; (see&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; /docs&lt;/span&gt;&lt;span&gt;)                           Auto (&lt;/span&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;Gemini&lt;/span&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt; 3&lt;/span&gt;&lt;span&gt;) /model&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;또한 &lt;code&gt;/mcp&lt;/code&gt; 명령어를 통해서 어떤 기능이 있는지 확인할 수 있다.&lt;/p&gt;
+&lt;pre class=&quot;giallo z-l-code z-d-code&quot; &gt;&lt;code data-lang=&quot;shellscript&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-8 z-d-10&quot;&gt;&amp;gt;&lt;/span&gt;&lt;span&gt; /mcp&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;Configured&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; MCP&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; servers:&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;🟢&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; ida-vm&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; -&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; Ready&lt;/span&gt;&lt;span&gt; (71&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; tools,&lt;/span&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt; 15&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; resources&lt;/span&gt;&lt;span&gt;)&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;  Tools:&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;  -&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; analyze_funcs&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;  -&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; analyze_strings&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;  -&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; apply_types&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt;  .&lt;/span&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt;.&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;  Resources:&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;  -&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; idb_metadata_resource&lt;/span&gt;&lt;span&gt; (ida://idb/metadata&lt;/span&gt;&lt;span&gt;) &lt;/span&gt;&lt;span&gt;[&lt;/span&gt;&lt;span&gt;application/json&lt;/span&gt;&lt;span&gt;]&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;  -&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; idb_segments_resource&lt;/span&gt;&lt;span&gt; (ida://idb/segments&lt;/span&gt;&lt;span&gt;) &lt;/span&gt;&lt;span&gt;[&lt;/span&gt;&lt;span&gt;application/json&lt;/span&gt;&lt;span&gt;]&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-6 z-d-7&quot;&gt;  -&lt;/span&gt;&lt;span class=&quot;z-l-2 z-d-6&quot;&gt; idb_entrypoints_resource&lt;/span&gt;&lt;span&gt; (ida://idb/entrypoints&lt;/span&gt;&lt;span&gt;) &lt;/span&gt;&lt;span&gt;[&lt;/span&gt;&lt;span&gt;application/json&lt;/span&gt;&lt;span&gt;]&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt;  .&lt;/span&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;z-l-1 z-d-4&quot;&gt;.&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;h2 id=&quot;0x02-prompt-engineering&quot;&gt;&lt;a class=&quot;header-anchor no-hover-padding&quot; href=&quot;#0x02-prompt-engineering&quot; aria-label=&quot;Anchor link for: 0x02-prompt-engineering&quot;&gt;&lt;span class=&quot;link-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;/span&gt;&lt;/a&gt;
+0x02. Prompt Engineering&lt;/h2&gt;
+&lt;p&gt;CTF를 준비할 때에는 미처 확인하지 못한 부분인데, 당연하게도 더 나은 분석 결과를 위해 프롬프트가 권장된다.
+기본적으로 제시된 프롬프트는 다음과 같다.&lt;/p&gt;
+&lt;pre class=&quot;giallo z-l-code z-d-code&quot; &gt;&lt;code data-lang=&quot;plain&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;Your task is to analyze the open file in IDA Pro. You can use the MCP tools to retrieve information. In general use the following strategy:&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;- Inspect the decompilation and add comments with your findings&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;- Rename variables to more sensible names&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;- Change the variable and argument types if necessary (especially pointer and array types)&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;- Change function names to be more descriptive&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;- If more details are necessary, disassemble the function and add comments with your findings&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;- NEVER convert number bases yourself. Use the `int_convert` MCP tool if needed!&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;- Do not attempt brute forcing, derive any solutions purely from the disassembly and simple python scripts&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;- Create a report.md with your findings and steps taken at the end&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;- When you find a solution, prompt to user for feedback with the password you found&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;다른 유저 (&lt;a class=&quot;external&quot; rel=&quot;external&quot; href=&quot;https://github.com/can1357&quot;&gt;@can1357&lt;/a&gt;)가 공유한 프롬프트는 다음과 같다.&lt;/p&gt;
+&lt;pre class=&quot;giallo z-l-code z-d-code&quot; &gt;&lt;code data-lang=&quot;plain&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;Your task is to create a complete and comprehensive reverse engineering analysis. Reference AGENTS.md to understand the project goals and ensure the analysis serves our purposes.&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;Use the following systematic methodology:&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;1. **Decompilation Analysis**&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;   - Thoroughly inspect the decompiler output&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;   - Add detailed comments documenting your findings&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;   - Focus on understanding the actual functionality and purpose of each component (do not rely on old, incorrect comments)&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;2. **Improve Readability in the Database**&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;   - Rename variables to sensible, descriptive names&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;   - Correct variable and argument types where necessary (especially pointers and array types)&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;   - Update function names to be descriptive of their actual purpose&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;3. **Deep Dive When Needed**&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;   - If more details are necessary, examine the disassembly and add comments with findings&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;   - Document any low-level behaviors that aren&amp;#39;t clear from the decompilation alone&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;   - Use sub-agents to perform detailed analysis&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;4. **Important Constraints**&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;   - NEVER convert number bases yourself - use the int_convert MCP tool if needed&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;   - Use MCP tools to retrieve information as necessary&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;   - Derive all conclusions from actual analysis, not assumptions&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;5. **Documentation**&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;   - Produce comprehensive RE/*.md files with your findings&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;   - Document the steps taken and methodology used&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;   - When asked by the user, ensure accuracy over previous analysis file&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;      - Organize findings in a way that serves the project goals outlined in AGENTS.md or CLAUDE.md&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;</content>
+        <summary type="html">게스트(IDA)와 호스트(Gemini CLI) 분리를 통한 효율적인 병행 분석 환경 구축</summary>
+        </entry>
+</feed>
